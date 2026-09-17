@@ -40,6 +40,11 @@ YouTube Music 웹(https://music.youtube.com)을 macOS(1순위)와 Windows(2순�
 
 ## 3. 기술 스택
 
+### 지원 OS
+- macOS 13 Ventura 이상, Intel(x64)과 Apple Silicon(arm64) 각각 별도 바이너리 제공. 최신 Electron이 macOS 12 이하를 지원하지 않는다.
+- Windows 10 이상 (2순위).
+
+
 | 항목 | 선택 |
 |---|---|
 | 언어 | TypeScript |
@@ -150,7 +155,7 @@ pear-desktop(구 th-ch/youtube-music)의 `src/index.ts` 방식을 따른다. 단
 - 릴리스마다 버전과 sha256을 갱신한다. 초기에는 수동 갱신, 이후 GitHub Actions로 자동화 가능(범위 밖).
 
 ### 7.3 미서명 앱 제약
-- Apple Developer 계정이 없어 Gatekeeper 경고("확인되지 않은 개발자" 또는 "손상됨")가 뜬다.
+- Apple Developer 계정이 없어 Gatekeeper 경고가 뜬다. macOS 14까지는 "확인되지 않은 개발자"로 우클릭-열기 우회가 가능하지만, macOS 15 Sequoia부터는 "손상되어 열 수 없음"으로 표시되고 우클릭 우회가 사라졌으므로 격리 속성 제거가 필수다.
 - 대응: brew 설치 시 cask `postflight`가 격리 속성을 제거한다. DMG로 직접 설치한 사용자를 위해 README에 수동 해제 명령 `xattr -cr /Applications/YTMusic.app`을 적는다.
 - 추후 계정이 생기면 electron-builder에 `identity`와 `notarize` 설정만 추가하면 되도록 설정 구조를 잡는다.
 
