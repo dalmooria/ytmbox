@@ -23,10 +23,20 @@ YouTube Music 웹(https://music.youtube.com)을 macOS(1순위)와 Windows(2순�
 - Windows 빌드 설정 포함 (검증 우선순위 낮음)
 
 ### 제외 (YAGNI)
-- 광고 차단, 테마, 가사, 플러그인 시스템
+- 광고 차단, 다운로더 (YouTube ToS 리스크, 영구 제외)
+- 테마, 가사, 플러그인 시스템, 커스텀 타이틀바, 크로스페이드, 이퀄라이저, 원격 제어 API
 - 자동 업데이트
 - Apple 코드 서명·공증 (개발자 계정 없음, 후술)
 - Linux 배포
+
+### 2차 범위 (껍데기 완성 후 별도 스펙으로 진행)
+공통 기반인 song-info 채널(preload에서 현재 곡 정보를 읽어 main으로 전달)을 먼저 만들고 그 위에 다음을 얹는다. 모두 pear-desktop(MIT) 구현을 참고하며 출처를 고지한다.
+- SponsorBlock 구간 자동 스킵
+- 곡 변경 데스크톱 알림
+- 트레이 메뉴에 현재 곡 표시
+- 앱 시작 시 자동재생 방지
+- 지수 볼륨(저볼륨 구간 세밀 조절)
+- 이후 후보: Discord Rich Presence, Last.fm 스크로블, 미니 플레이어(항상 위 + 작은 창), 추가 전역 단축키, 재생 속도
 
 ## 3. 기술 스택
 
@@ -36,7 +46,7 @@ YouTube Music 웹(https://music.youtube.com)을 macOS(1순위)와 Windows(2순�
 | 런타임 | Electron (최신 안정 버전) |
 | 빌드 | electron-builder |
 | 테스트 | vitest |
-| 창 상태 저장 | electron-window-state |
+| 창 상태 저장 | electron-store (자체 구현, electron-window-state는 2018년 이후 미유지보수) |
 | 패키지 매니저 | npm |
 
 ## 4. 구조
@@ -66,10 +76,11 @@ docs/superpowers/specs/
 - `session.fromPartition('persist:ytmusic')`로 영속 세션을 만들고 BrowserWindow의 `webPreferences.session`에 지정한다. 쿠키·로컬스토리지가 재실행 후에도 유지되어 로그인이 남는다.
 - `webPreferences`: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `preload` 지정.
 - 창 생성 후 `https://music.youtube.com`을 `loadURL`한다. `<webview>`나 WebContentsView는 사용하지 않는다.
-- `electron-window-state`로 위치·크기·최대화 상태를 저장하고 다음 실행 시 복원한다. 기본 크기 1280×800.
+- `electron-store`에 `bounds`와 `isMaximized`를 저장한다. `resize`/`move`(디바운스)와 `close` 시 저장하고, 복원 시 `screen.getDisplayMatching`으로 화면 밖 좌표를 보정한다. 기본 크기 1280×800.
+- Electron 최신 버전에서는 `contextIsolation`, `nodeIntegration: false`, `sandbox`가 기본값이지만 의도를 문서화하기 위해 명시한다.
 
 ### 5.2 Google 로그인 우회 (`user-agent.ts`)
-th-ch/youtube-music의 `src/index.ts` 방식을 따른다.
+pear-desktop(구 th-ch/youtube-music)의 `src/index.ts` 방식을 따른다. 단, pear-desktop은 이 옵션이 기본 꺼짐이고 2022년 이후 로그인 차단 이슈가 없으므로 현재는 기본 UA로도 로그인이 되는 것으로 보인다. UA 위장은 무해하므로 기본 켜짐으로 두되, 설정으로 끌 수 있게 한다.
 - 창 생성 시 `webContents.userAgent`와 `app.userAgentFallback`을 OS별 일반 Chrome UA 문자열로 교체한다. UA에서 `Electron/x.y.z` 토큰이 사라져 Google이 임베디드 브라우저로 판정하지 않는다.
 - UA 문자열은 상수로 관리하며 Chrome 메이저 버전을 주기적으로 갱신한다.
 - `session.webRequest.onBeforeSendHeaders`에서, 현재 페이지와 요청 URL이 모두 `https://accounts.google.com`으로 시작할 때만 원래 Electron UA로 되돌린다. 이는 로그인 실패 후 "다시 시도" 케이스를 위한 예외다.
@@ -80,15 +91,16 @@ th-ch/youtube-music의 `src/index.ts` 방식을 따른다.
   - `music.youtube.com`
   - `accounts.google.com`, `*.google.com`
   - `www.youtube.com`, `youtube.com` (로그인 리다이렉트 경유)
+  - `*.youtube.com` (consent 등), `*.googleapis.com`, `apis.google.com`
   - `*.googleusercontent.com`, `*.gstatic.com`, `*.ggpht.com` (리소스)
 - `webContents.setWindowOpenHandler`: 허용 URL이면 같은 창에서 `loadURL`하고 `{ action: 'deny' }`. 비허용이면 `shell.openExternal` 후 deny. 새 창은 어떤 경우에도 만들지 않는다.
 - `webContents.on('will-navigate')`: 비허용 URL이면 `preventDefault` 후 `shell.openExternal`.
 
 ### 5.4 미디어 키 (`media-keys.ts`, `preload/index.ts`)
-- `globalShortcut.register`로 `MediaPlayPause`, `MediaNextTrack`, `MediaPreviousTrack`, `MediaStop`을 등록한다.
-- 키 입력 시 메인 프로세스가 `webContents.send('media:command', cmd)`로 전달하고, preload가 `contextBridge`로 노출한 리스너가 YouTube Music 플레이어 버튼(`#play-pause-button`, `.next-button`, `.previous-button`)을 클릭한다. 선택자는 한 곳(preload)에 상수로 모은다.
-- macOS "지금 재생 중" 위젯은 Chromium MediaSession이 자동 연동한다. 별도 구현 없이 동작 여부만 수동 검증한다.
-- 앱 종료 시 `globalShortcut.unregisterAll()`.
+- 기본 동작: `globalShortcut`을 **등록하지 않는다**. YouTube Music 웹이 `navigator.mediaSession` 핸들러를 등록하므로, Chromium의 MediaSession 연동을 통해 재생 시작 후에는 macOS Now Playing(MPRemoteCommandCenter)이 하드웨어 미디어키를 처리한다. macOS "지금 재생 중" 위젯도 같은 경로로 자동 연동된다. 동작 여부는 수동 검증한다.
+- 이유: `globalShortcut`의 미디어키는 macOS에서 손쉬운 사용성(Accessibility) 권한이 필요하고, 다른 앱(Spotify, Music.app)의 미디어키를 가로채며, 등록 시 Electron 내부 경로가 바뀌어 Now Playing 처리와 충돌할 수 있다. pear-desktop도 같은 이유로 기본 꺼짐이다.
+- 선택 옵션 "미디어키 강제 점유": 켜면 `globalShortcut.register`로 `MediaPlayPause`, `MediaNextTrack`, `MediaPreviousTrack`, `MediaStop`을 등록한다. 등록 전 `systemPreferences.isTrustedAccessibilityClient(true)`로 권한을 확인·요청하고, 종료 시 `unregisterAll()`한다.
+- 트레이 메뉴와 강제 점유 옵션에서 쓰는 재생 제어는 메인이 `webContents.send('media:command', cmd)`로 전달하고, preload가 `ipcRenderer.on`을 함수로 감싸 `contextBridge`로 노출한다(Electron 29+는 `ipcRenderer` 객체 직접 노출 불가). 렌더러 측은 DOM 버튼 클릭 대신 `document.querySelector('video')`의 `play()`/`pause()`를 우선 사용하고, 다음/이전은 `navigator.mediaSession` 핸들러 또는 플레이어 버튼 선택자를 쓴다. 선택자는 preload 한 곳에 상수로 모은다.
 
 ### 5.5 macOS 창 닫기 및 트레이 (`index.ts`, `tray.ts`, `menu.ts`)
 - macOS에서 창 `close` 이벤트는 `preventDefault` 후 `hide()`. 재생은 계속된다.
@@ -103,7 +115,7 @@ th-ch/youtube-music의 `src/index.ts` 방식을 따른다.
 
 ### 5.7 앱 아이콘
 - `build/icon.png`(1024×1024)를 원본으로 두고 electron-builder가 icns/ico를 생성한다.
-- 트레이 아이콘은 macOS용 템플릿 이미지(`trayTemplate.png`, 흑백 22×22 @1x/@2x)를 별도로 둔다.
+- 트레이 아이콘은 macOS용 템플릿 이미지(`trayTemplate.png` 16×16, `trayTemplate@2x.png` 32×32, 흑백)를 별도로 둔다. Tray 인스턴스는 GC 방지를 위해 모듈 스코프에 보관한다.
 
 ## 6. 보안
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`를 필수로 한다. 외부 사이트를 로드하므로 렌더러에 Node 접근을 절대 허용하지 않는다.
@@ -116,27 +128,35 @@ th-ch/youtube-music의 `src/index.ts` 방식을 따른다.
 - `appId`: `com.brad.ytmusic` (확정 시 변경 가능), 제품명 `YTMusic`.
 - macOS 타깃: `dmg`, `zip`, 아키텍처 `arm64` + `x64`.
 - Windows 타깃: `nsis` (설정만 포함, 검증은 후순위).
-- 코드 서명: `mac.identity: null`로 ad-hoc 서명. 공증 없음.
+- 코드 서명: `mac.identity: "-"`로 **ad-hoc 서명**. (`null`은 서명 생략이며, Apple Silicon은 ad-hoc 서명조차 없으면 "손상됨"으로 실행되지 않는다.) `notarize: false`.
 - 산출물은 GitHub Releases에 태그별로 업로드한다. 릴리스는 GitHub Actions 워크플로(`release.yml`)로 macOS 러너에서 빌드·업로드한다.
 
 ### 7.2 Homebrew cask
 - 별도 tap 레포(`<github-user>/homebrew-tap`)에 `Casks/ytmusic.rb`를 둔다.
 - cask는 GitHub Release의 arm64/x64 zip을 가리키며 `sha256`을 명시한다.
+- 아키텍처별 URL은 `arch arm: "arm64", intel: "x64"`와 `sha256 arm:, intel:` 문법을 쓴다.
+- 격리 해제는 cask 안의 `postflight`에서 처리한다:
+  ```ruby
+  postflight do
+    system "xattr", "-r", "-d", "com.apple.quarantine", "#{appdir}/YTMusic.app"
+  end
+  ```
+  (`--no-quarantine` 플래그는 Homebrew 5.0에서 폐지되어 현재 사용할 수 없다. 개인 tap은 공식 cask의 Gatekeeper 정책 적용을 받지 않는다.)
 - 설치 안내:
   ```
   brew tap <github-user>/tap
-  brew install --cask --no-quarantine ytmusic
+  brew install --cask ytmusic
   ```
 - 릴리스마다 버전과 sha256을 갱신한다. 초기에는 수동 갱신, 이후 GitHub Actions로 자동화 가능(범위 밖).
 
 ### 7.3 미서명 앱 제약
 - Apple Developer 계정이 없어 Gatekeeper 경고("확인되지 않은 개발자" 또는 "손상됨")가 뜬다.
-- 대응: `--no-quarantine` 설치를 기본 안내로 하고, README에 수동 해제 명령 `xattr -cr /Applications/YTMusic.app`을 함께 적는다.
+- 대응: brew 설치 시 cask `postflight`가 격리 속성을 제거한다. DMG로 직접 설치한 사용자를 위해 README에 수동 해제 명령 `xattr -cr /Applications/YTMusic.app`을 적는다.
 - 추후 계정이 생기면 electron-builder에 `identity`와 `notarize` 설정만 추가하면 되도록 설정 구조를 잡는다.
 
 ## 8. 에러 처리
-- 네트워크 오류로 페이지 로드 실패(`did-fail-load`) 시 간단한 오프라인 안내 HTML을 로드하고 "다시 시도" 버튼을 둔다.
-- 미디어키 등록 실패는 경고 로그만 남기고 앱은 정상 실행한다.
+- 네트워크 오류로 페이지 로드 실패(`did-fail-load`, `isMainFrame === true`인 경우만, `errorCode === -3` ERR_ABORTED는 무시) 시 간단한 오프라인 안내 HTML을 로드하고 "다시 시도" 버튼을 둔다.
+- 강제 점유 옵션의 미디어키 등록 실패(권한 미허용, 다른 앱이 선점)는 경고 로그만 남기고 앱은 정상 실행한다.
 - 트레이 아이콘 파일 누락 시 트레이 없이 실행한다 (macOS는 Dock으로 복원 가능).
 
 ## 9. 테스트
@@ -152,10 +172,14 @@ th-ch/youtube-music의 `src/index.ts` 방식을 따른다.
 2. 앱 종료 후 재실행 시 로그인 유지
 3. "YouTube에서 보기" 등 외부 링크가 기본 브라우저에서 열림
 4. 창 크기·위치 변경 후 재실행 시 복원
-5. 미디어키로 재생/일시정지/다음/이전 동작
+5. 재생 시작 후 하드웨어 미디어키로 재생/일시정지/다음/이전 동작, macOS 지금 재생 중 위젯에 곡 정보 표시
 6. macOS 창 닫기 후 재생 유지, Dock 클릭으로 복원, Cmd+Q로 종료
 7. 앱 두 번 실행 시 기존 창이 포커스됨
-8. `brew install --cask --no-quarantine`으로 설치 후 실행 성공
+8. `brew install --cask`로 설치 후 Gatekeeper 경고 없이 실행 성공
 
 ## 10. 참고
-- th-ch/youtube-music `src/index.ts`: UA 위장, `onBeforeSendHeaders` 재시도 예외, 단일 인스턴스 락 구현
+- pear-devs/pear-desktop (구 th-ch/youtube-music, MIT) `src/index.ts`: UA 위장, `onBeforeSendHeaders` 재시도 예외, 단일 인스턴스 락 구현. 코드 차용 시 저작권 고지(Copyright (c) th-ch, MIT) 필요.
+- Electron globalShortcut 문서: macOS 미디어키의 Accessibility 권한 요구 — https://www.electronjs.org/docs/latest/api/global-shortcut
+- electron-builder mac 서명 옵션 — https://www.electron.build/docs/mac/
+- Homebrew `--no-quarantine` 폐지 — https://github.com/Homebrew/brew/issues/20755
+- Homebrew Cask Cookbook — https://docs.brew.sh/Cask-Cookbook
