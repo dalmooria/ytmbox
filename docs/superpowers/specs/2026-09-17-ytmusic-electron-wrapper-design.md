@@ -137,22 +137,57 @@ pear-desktop(구 th-ch/youtube-music)의 `src/index.ts` 방식을 따른다. 단
 - 산출물은 GitHub Releases에 태그별로 업로드한다. 릴리스는 GitHub Actions 워크플로(`release.yml`)로 macOS 러너에서 빌드·업로드한다.
 
 ### 7.2 Homebrew cask
-- 별도 tap 레포(`<github-user>/homebrew-tap`)에 `Casks/ytmusic.rb`를 둔다.
-- cask는 GitHub Release의 arm64/x64 zip을 가리키며 `sha256`을 명시한다.
-- 아키텍처별 URL은 `arch arm: "arm64", intel: "x64"`와 `sha256 arm:, intel:` 문법을 쓴다.
-- 격리 해제는 cask 안의 `postflight`에서 처리한다:
-  ```ruby
+
+**사전 준비**
+- tap 레포: `<github-user>/homebrew-tap` (이름은 반드시 `homebrew-` 접두사). 내용은 `Casks/ytmusic.rb` 하나.
+- 앱 레포 GitHub Actions에서 macOS 러너 사용 (공개 레포는 무료).
+- 산출물 파일명 규칙 고정: `YTMusic-<version>-<arch>.zip` (arch는 `arm64` / `x64`). cask에서 `#{version}`, `#{arch}`로 치환한다. cask는 DMG 대신 ZIP을 사용한다.
+- 앱 이름 `YTMusic`, appId `com.brad.ytmusic` 확정 (zap 경로와 파일명에 사용).
+
+**cask 정의**
+```ruby
+cask "ytmusic" do
+  arch arm: "arm64", intel: "x64"
+
+  version "1.0.0"
+  sha256 arm:   "<arm64 zip sha256>",
+         intel: "<x64 zip sha256>"
+
+  url "https://github.com/<github-user>/ytmusicApp/releases/download/v#{version}/YTMusic-#{version}-#{arch}.zip"
+  name "YTMusic"
+  desc "YouTube Music desktop wrapper"
+  homepage "https://github.com/<github-user>/ytmusicApp"
+
+  app "YTMusic.app"
+
   postflight do
     system "xattr", "-r", "-d", "com.apple.quarantine", "#{appdir}/YTMusic.app"
   end
-  ```
-  (`--no-quarantine` 플래그는 Homebrew 5.0에서 폐지되어 현재 사용할 수 없다. 개인 tap은 공식 cask의 Gatekeeper 정책 적용을 받지 않는다.)
-- 설치 안내:
-  ```
-  brew tap <github-user>/tap
-  brew install --cask ytmusic
-  ```
-- 릴리스마다 버전과 sha256을 갱신한다. 초기에는 수동 갱신, 이후 GitHub Actions로 자동화 가능(범위 밖).
+
+  zap trash: [
+    "~/Library/Application Support/YTMusic",
+    "~/Library/Preferences/com.brad.ytmusic.plist",
+  ]
+end
+```
+- `postflight`가 격리 속성을 제거한다. `--no-quarantine` 플래그는 Homebrew 5.0에서 폐지되어 사용할 수 없다. 개인 tap은 공식 cask의 Gatekeeper 정책 적용을 받지 않는다.
+- `livecheck` 블록은 선택 사항이다.
+
+**릴리스 절차 (매 버전)**
+1. 앱 레포에 `vX.Y.Z` 태그를 푸시한다. `release.yml`이 macOS 러너에서 arm64/x64 ZIP을 빌드해 GitHub Release에 첨부한다.
+2. 두 ZIP의 SHA256을 구한다 (`shasum -a 256 <file>`).
+3. tap 레포의 cask에서 `version`과 두 `sha256`을 갱신해 커밋한다. 초기에는 수동, 이후 앱 레포 워크플로가 tap 레포에 PR을 자동 생성하도록 확장 가능(tap 쓰기 권한 토큰 필요, 범위 밖).
+4. 사용자는 `brew upgrade --cask ytmusic`으로 업데이트한다.
+
+**설치 안내**
+```
+brew tap <github-user>/tap
+brew install --cask ytmusic
+```
+
+**검증**
+- 로컬 직접 설치: `brew install --cask ./Casks/ytmusic.rb`
+- 문법 검사: `brew audit --cask ytmusic`, `brew style Casks/ytmusic.rb` (Gatekeeper 감사는 개인 tap이므로 통과 불필요)
 
 ### 7.3 미서명 앱 제약
 - Apple Developer 계정이 없어 Gatekeeper 경고가 뜬다. macOS 14까지는 "확인되지 않은 개발자"로 우클릭-열기 우회가 가능하지만, macOS 15 Sequoia부터는 "손상되어 열 수 없음"으로 표시되고 우클릭 우회가 사라졌으므로 격리 속성 제거가 필수다.
