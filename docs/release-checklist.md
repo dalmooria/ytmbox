@@ -43,8 +43,6 @@ README에 두 군데 넣었다. 기능 목록 바로 아래에 한 줄 요약(�
 
 | 위치 | 무엇 |
 |---|---|
-| `README.md` | `<github-user>` (tap 안내, Releases 링크) |
-| `homebrew/ytmbox.rb` | `<github-user>` (`url`, `homepage`) |
 | `homebrew/ytmbox.rb` | `REPLACE_WITH_ARM64_ZIP_SHA256`, `REPLACE_WITH_X64_ZIP_SHA256` |
 | `LICENSE` | 저작권 줄이 `Copyright (c) 2026 Brad`다. 실명이나 법적 주체로 쓸지 결정 |
 
@@ -55,7 +53,7 @@ sha256 두 개는 릴리스를 만든 뒤에야 나온다 — 릴리스 워크�
 
 - [ ] GitHub 저장소 생성. **이름은 `ytmbox`** — README와 cask의 URL이 이미 그렇게 가리킨다.
 - [ ] `git remote add origin` 후 `git push -u origin main`
-- [ ] `<github-user>/homebrew-tap` 저장소 생성, `homebrew/ytmbox.rb`를 그쪽 `Casks/ytmbox.rb`로 복사
+- [ ] `dalmooria/homebrew-tap` 저장소 생성, `homebrew/ytmbox.rb`를 그쪽 `Casks/ytmbox.rb`로 복사
 - [ ] 로컬 폴더명이 아직 `ytmusicApp`이다. git은 경로에 의존하지 않으므로 `mv`로 바꿔도 안전하다.
 
 ## 3. 자산
@@ -106,6 +104,9 @@ CI(`ci.yml`)는 push/PR에서 테스트와 빌드를 돌린다. 첫 push에서 �
 - [ ] `CHANGELOG.md` — 릴리스마다 무엇이 바뀌었는지. 지금은 개발 기록이 그 역할을 겸하고 있다.
 - [ ] README에 "왜 이걸 만들었나" 한 문단. 비슷한 프로젝트가 여럿 있어서 차이를 적어두면 좋다.
 - [ ] 이슈 템플릿 / `CONTRIBUTING.md` — 기여를 받을 생각이면.
+- [ ] README가 한국어(`README.md`)와 영어(`README.en.md`) 두 벌이다. **한쪽만 고치면
+      바로 어긋난다.** 설치 절차처럼 틀리면 사용자가 막히는 내용은 특히 주의한다.
+      유지가 부담이면 한 벌로 줄이는 편이 낫다.
 - [ ] `docs/superpowers/` 아래 사양·계획서도 함께 공개된다. 설계 의도가 드러나 유용하지만,
       공개하고 싶지 않다면 지금 정리해야 한다.
 

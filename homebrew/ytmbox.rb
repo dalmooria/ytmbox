@@ -1,4 +1,4 @@
-# 이 파일을 <github-user>/homebrew-tap 레포의 Casks/ytmbox.rb 로 복사한다.
+# 이 파일을 dalmooria/homebrew-tap 레포의 Casks/ytmbox.rb 로 복사한다.
 # 이 저장소의 homebrew/ytmbox.rb 자체는 배포되는 실제 cask가 아니라 템플릿이다.
 # 릴리스마다 version 과 두 sha256 을 release/SHA256SUMS.txt 값으로 갱신한다.
 cask "ytmbox" do
@@ -8,10 +8,10 @@ cask "ytmbox" do
   sha256 arm:   "REPLACE_WITH_ARM64_ZIP_SHA256",
          intel: "REPLACE_WITH_X64_ZIP_SHA256"
 
-  url "https://github.com/<github-user>/ytmbox/releases/download/v#{version}/YTMBox-#{version}-#{arch}.zip"
+  url "https://github.com/dalmooria/ytmbox/releases/download/v#{version}/YTMBox-#{version}-#{arch}.zip"
   name "YTMBox"
   desc "YouTube Music desktop wrapper"
-  homepage "https://github.com/<github-user>/ytmbox"
+  homepage "https://github.com/dalmooria/ytmbox"
 
   livecheck do
     url :url
