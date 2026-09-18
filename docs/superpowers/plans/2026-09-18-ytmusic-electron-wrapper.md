@@ -1869,7 +1869,7 @@ end
 
 - [ ] **Step 4: README.md**
 
-```markdown
+````markdown
 # YTMusic
 
 YouTube Music 웹을 그대로 감싼 macOS(1순위) / Windows 데스크톱 앱입니다.
@@ -1923,7 +1923,7 @@ npm run dist     # macOS DMG/ZIP → release/
 ## 라이선스
 
 MIT. 제3자 고지는 `THIRD_PARTY_NOTICES.md`를 참고하세요.
-```
+````
 
 - [ ] **Step 5: cask 문법 검사**
 
