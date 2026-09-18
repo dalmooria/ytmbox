@@ -12,10 +12,17 @@ YouTube Music 웹을 그대로 감싼 macOS(1순위) / Windows 데스크톱 앱�
 
 ## 설치 (macOS, Homebrew)
 
+**참고:** 아래 명령은 `<github-user>/homebrew-tap` 저장소를 먼저 만들어 cask를
+올린 뒤에만 동작합니다. 아직 tap을 만들지 않았다면 아래 "설치 (macOS, DMG 직접
+다운로드)" 방법을 쓰거나, "Homebrew tap 준비" 절을 먼저 따르세요.
+
 ```sh
 brew tap <github-user>/tap
 brew install --cask ytmusic
 ```
+
+(`brew tap <github-user>/tap`은 Homebrew가 `homebrew-` 접두사를 자동으로 붙이므로
+실제로는 `<github-user>/homebrew-tap` 저장소를 가리킵니다.)
 
 이 앱은 Apple 개발자 서명이 없는(ad-hoc 서명) 앱입니다. Homebrew cask는
 `postflight`에서 Gatekeeper 격리 속성을 자동으로 제거하므로 위 방법으로 설치하면
