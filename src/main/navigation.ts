@@ -27,7 +27,12 @@ export function attachNavigationPolicy(win: BrowserWindow): void {
   });
 
   webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedUrl(url)) {
+    // Premium 안내 페이지의 로그인은 팝업이 아니라 같은 창에서 열린다.
+    // Google 인증 도중의 단계 이동은 그대로 두고, 최초 진입만 Music으로 복귀시킨다.
+    if (isAllowedUrl(url) && isAccountsHost(url) && !isAccountsHost(webContents.getURL())) {
+      event.preventDefault();
+      void webContents.loadURL(loginUrlReturningToYtMusic());
+    } else if (!isAllowedUrl(url)) {
       event.preventDefault();
       safeOpenExternal(url);
     }
