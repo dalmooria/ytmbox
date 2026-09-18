@@ -52,6 +52,14 @@ describe('the rules the stylesheet must carry', () => {
     expect(PLAYER_BAR_CSS).toMatch(/opacity:\s*1\s*!important/);
   });
 
+  // 이 버튼("플레이어 컨트롤 더보기")은 위 미디어 쿼리가 숨긴 컨트롤을 꺼내는 용도다.
+  // 그 컨트롤들을 우리가 이미 항상 보이게 만들었으므로 누를 것이 남아 있지 않다.
+  it('hides the overflow button that has nothing left to reveal', () => {
+    expect(PLAYER_BAR_CSS).toMatch(
+      /\.right-controls\s+\.expand-button\s*\{[^}]*display:\s*none\s*!important/,
+    );
+  });
+
   it('keeps the slider from being flex-shrunk, and gives its row room', () => {
     // flex:none 만 주면 슬라이더가 컨테이너 밖으로 넘쳐 작업 메뉴(⋮)를 덮는다.
     expect(PLAYER_BAR_CSS).toMatch(/flex:\s*none\s*!important/);
