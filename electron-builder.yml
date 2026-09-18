@@ -1,0 +1,39 @@
+appId: com.brad.ytmusic
+productName: YTMusic
+copyright: Copyright © 2026 Brad
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - assets/**
+  - package.json
+artifactName: ${productName}-${version}-${arch}.${ext}
+
+mac:
+  category: public.app-category.music
+  icon: build/icon.png
+  # Apple Developer 계정 없음: ad-hoc 서명. null은 서명 생략이며 Apple Silicon에서 실행 불가.
+  identity: "-"
+  notarize: false
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+dmg:
+  sign: false
+
+# Windows 빌드는 windows-latest 러너에서만 수행한다 (macOS에서 exe 아이콘 삽입에 Wine이 필요할 수 있음).
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
