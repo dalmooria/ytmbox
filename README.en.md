@@ -14,6 +14,8 @@ desktop app needs added on top.
 - Hardware media keys and macOS Now Playing integration
 - External links open in your default browser
 
+![YTMBox running — the current track in the macOS window title, with the volume slider, shuffle and repeat always visible in the player bar](docs/images/screenshot.png)
+
 > **This is an unofficial project.** YTMBox is not affiliated with Google LLC and
 > is not endorsed, sponsored, or approved by Google. See [Notice](#notice).
 

@@ -13,6 +13,8 @@ YouTube Music 웹을 그대로 감싼 macOS(1순위) / Windows 데스크톱 앱�
 - 하드웨어 미디어키 및 macOS "지금 재생 중" 연동
 - 외부 링크는 기본 브라우저로
 
+![YTMBox 실행 화면 — macOS 창 제목에 현재 곡이 표시되고, 플레이어 바에 볼륨 슬라이더와 셔플·반복이 항상 보인다](docs/images/screenshot.png)
+
 > **비공식 프로젝트입니다.** YTMBox는 Google LLC와 아무 관련이 없으며, Google의
 > 보증·후원·승인을 받지 않았습니다. 자세한 내용은 [고지](#고지)를 참고하세요.
 
