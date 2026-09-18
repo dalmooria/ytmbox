@@ -5,6 +5,7 @@ import { settings } from './settings';
 import { applyUserAgentSpoof } from './user-agent';
 import { attachNavigationPolicy } from './navigation';
 import { attachOfflineFallback } from './offline';
+import { attachPageStyle } from './page-style';
 import { attachUnloadOverride } from './unload';
 import { APP_NAME, YTMUSIC_URL } from './constants';
 
@@ -64,6 +65,7 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
 
   attachNavigationPolicy(win);
   attachOfflineFallback(win);
+  attachPageStyle(win);
   attachUnloadOverride(win);
   attachWindowStatePersistence(win);
 
