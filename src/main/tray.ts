@@ -16,6 +16,15 @@ function trayIconPath(): string {
   return path.join(app.getAppPath(), 'assets', 'trayTemplate.png');
 }
 
+/**
+ * 아이콘 옆에 현재 곡을 표시한다. setTitle은 macOS 전용이라 다른 OS에서는 아무것도 하지 않는다.
+ * 트레이가 없으면(아이콘 누락·생성 실패) 조용히 넘어간다.
+ */
+export function setTrayTitle(text: string): void {
+  if (process.platform !== 'darwin') return;
+  tray?.setTitle(text);
+}
+
 /** 아이콘 파일이 없으면 null을 반환하고 트레이 없이 실행한다. */
 export function createTray(handlers: TrayHandlers): Tray | null {
   const iconPath = trayIconPath();

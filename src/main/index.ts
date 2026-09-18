@@ -1,10 +1,11 @@
 import './app-name';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { MediaCommand, sendMediaCommand } from '../shared/media';
+import { formatTrayTitle, isNowPlaying, NOWPLAYING_CHANNEL } from '../shared/now-playing';
 import { registerMediaKeys, unregisterMediaKeys } from './media-keys';
 import { installApplicationMenu } from './menu';
 import { settings } from './settings';
-import { createTray } from './tray';
+import { createTray, setTrayTitle } from './tray';
 import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
@@ -31,6 +32,13 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', showMainWindow);
+
+  // 렌더러가 보내는 값이므로 발신자와 형식을 모두 확인한 뒤에야 사용한다.
+  ipcMain.on(NOWPLAYING_CHANNEL, (event, payload: unknown) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) return;
+    if (!isNowPlaying(payload)) return;
+    setTrayTitle(formatTrayTitle(payload));
+  });
 
   app.on('before-quit', () => {
     quitting = true;
