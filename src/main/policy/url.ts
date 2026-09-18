@@ -28,3 +28,17 @@ export function isAllowedUrl(raw: string): boolean {
   if (EXACT_HOSTS.has(host)) return true;
   return SUFFIX_HOSTS.some((suffix) => host.endsWith(suffix));
 }
+
+/**
+ * 외부 브라우저로 넘겨도 되는 URL인지 판정한다.
+ * http/https만 허용한다 — file:, data:, javascript:, 커스텀 스킴을 OS 핸들러에
+ * 넘기면 렌더러가 임의의 파일·앱을 열 수 있다.
+ */
+export function isExternallyOpenable(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}

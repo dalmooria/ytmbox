@@ -1,5 +1,5 @@
 import { BrowserWindow, shell } from 'electron';
-import { isAllowedUrl } from './policy/url';
+import { isAllowedUrl, isExternallyOpenable } from './policy/url';
 
 const YTMUSIC_URL = 'https://music.youtube.com/';
 const ACCOUNTS_HOST = 'accounts.google.com';
@@ -25,19 +25,8 @@ function isAccountsHost(url: string): boolean {
   }
 }
 
-/**
- * 외부로 넘길 URL은 http/https만 허용한다. file:, data:, 커스텀 스킴을 OS 핸들러에
- * 그대로 넘기면 렌더러가 임의의 앱·파일을 열 수 있다.
- */
 function safeOpenExternal(raw: string): void {
-  try {
-    const url = new URL(raw);
-    if (url.protocol === 'http:' || url.protocol === 'https:') {
-      void shell.openExternal(url.toString());
-    }
-  } catch {
-    // 파싱 불가한 URL은 무시한다.
-  }
+  if (isExternallyOpenable(raw)) void shell.openExternal(raw);
 }
 
 /**

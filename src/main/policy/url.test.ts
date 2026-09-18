@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllowedUrl } from './url';
+import { isAllowedUrl, isExternallyOpenable } from './url';
 
 describe('isAllowedUrl', () => {
   it.each([
@@ -31,5 +31,26 @@ describe('isAllowedUrl', () => {
     '',
   ])('blocks %s', (url) => {
     expect(isAllowedUrl(url)).toBe(false);
+  });
+});
+
+describe('isExternallyOpenable', () => {
+  it.each(['https://example.com/page', 'http://example.com/page'])(
+    'allows %s',
+    (url) => {
+      expect(isExternallyOpenable(url)).toBe(true);
+    },
+  );
+
+  it.each([
+    'file:///Applications/Calculator.app',
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'ftp://example.com/x',
+    'myapp://do-something',
+    'not a url',
+    '',
+  ])('blocks %s', (url) => {
+    expect(isExternallyOpenable(url)).toBe(false);
   });
 });
