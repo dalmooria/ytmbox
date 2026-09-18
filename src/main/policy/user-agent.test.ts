@@ -39,4 +39,19 @@ describe('shouldRestoreOriginalUa', () => {
   it('is false for empty page URL (before first load)', () => {
     expect(shouldRestoreOriginalUa('', 'https://accounts.google.com/')).toBe(false);
   });
+  it('is false for a lookalike host as the page URL', () => {
+    expect(shouldRestoreOriginalUa('https://accounts.google.com.evil.com/', 'https://accounts.google.com/_/x')).toBe(
+      false
+    );
+  });
+  it('is false for a lookalike host as the request URL', () => {
+    expect(shouldRestoreOriginalUa(login, 'https://accounts.google.com.evil.com/_/x')).toBe(false);
+  });
+  it('is false for the wrong scheme', () => {
+    expect(shouldRestoreOriginalUa('http://accounts.google.com/', 'https://accounts.google.com/_/x')).toBe(false);
+  });
+  it('is false and does not throw for a garbage string', () => {
+    expect(() => shouldRestoreOriginalUa('not a url', 'https://accounts.google.com/_/x')).not.toThrow();
+    expect(shouldRestoreOriginalUa('not a url', 'https://accounts.google.com/_/x')).toBe(false);
+  });
 });

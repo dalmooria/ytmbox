@@ -1,4 +1,13 @@
-const ACCOUNTS_PREFIX = 'https://accounts.google.com';
+const ACCOUNTS_HOST = 'accounts.google.com';
+
+function isAccountsUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' && url.hostname === ACCOUNTS_HOST;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Electron 토큰이 없는 일반 Chrome UA를 만든다.
@@ -22,5 +31,5 @@ export function pickUserAgent(platform: string, chromeVersion: string): string {
  * accounts.google.com일 때만 원래 Electron UA로 되돌린다.
  */
 export function shouldRestoreOriginalUa(pageUrl: string, requestUrl: string): boolean {
-  return pageUrl.startsWith(ACCOUNTS_PREFIX) && requestUrl.startsWith(ACCOUNTS_PREFIX);
+  return isAccountsUrl(pageUrl) && isAccountsUrl(requestUrl);
 }
