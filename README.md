@@ -83,6 +83,12 @@ npm run dist:win # Windows nsis 인스톨러 → release/
 2. 이 저장소의 `homebrew/ytmbox.rb`를 그 저장소의 `Casks/ytmbox.rb`로 복사합니다.
 3. 릴리스마다 `version`과 두 `sha256` 값을 갱신해 커밋합니다.
 
+## 문서
+
+- [개발 기록](docs/development-log.md) — 무엇을 왜 그렇게 만들었는지, 고친 결함과 검증 방법
+- [배포 준비](docs/release-checklist.md) — 공개·릴리스까지 남은 일
+- [수동 검증 체크리스트](docs/superpowers/verification/2026-09-18-manual-checklist.md)
+
 ## 라이선스
 
 MIT. 제3자 고지는 `THIRD_PARTY_NOTICES.md`를 참고하세요.
