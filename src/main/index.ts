@@ -1,6 +1,8 @@
+import './app-name';
 import { app, BrowserWindow } from 'electron';
 import { attachNavigationPolicy } from './navigation';
 import { applyUserAgentSpoof } from './user-agent';
+import { settings } from './settings';
 
 const YTMUSIC_URL = 'https://music.youtube.com';
 
@@ -14,7 +16,9 @@ function createWindow(): BrowserWindow {
       sandbox: true,
     },
   });
-  applyUserAgentSpoof(win);
+  if (settings.get('overrideUserAgent')) {
+    applyUserAgentSpoof(win);
+  }
   attachNavigationPolicy(win);
   void win.loadURL(YTMUSIC_URL);
   return win;
