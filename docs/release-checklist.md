@@ -5,18 +5,29 @@ YTMBox를 공개 저장소로 올리고 Homebrew tap으로 배포하기까지 �
 
 ## 0. 공개 전에 반드시 판단할 것
 
-### 커밋에 담긴 이메일 주소
+### 커밋에 담긴 이메일 주소 — 해결됨
 
-38개 커밋 전부가 `Brad <brad@cupist.com>`으로 서명돼 있다. **저장소를 공개하면 이 주소가 전부
-공개된다.** 회사 이메일이므로 의도한 것인지 먼저 확인이 필요하다.
+39개 커밋 전부가 회사 이메일로 서명돼 있었다. 공개 후에는 포크·캐시 때문에
+사실상 회수가 안 되므로, 원격이 없는 지금 `git filter-branch --env-filter`로 작성자·커미터
+이메일을 **`dalmooria@naver.com`으로 재작성했다.** 트리 내용과 커밋 제목은 재작성 전후가
+완전히 동일함을 확인했다 (`git diff backup/pre-email-rewrite HEAD` 결과 없음).
 
-지금은 원격이 없어 **되돌리는 비용이 0이다.** 공개 후에는 포크·캐시 때문에 사실상 회수가 안 된다.
+앞으로의 커밋을 위해 저장소 로컬 설정도 같이 바꿨다 (`git config user.email`). 전역 설정은
+건드리지 않았으므로 **다른 저장소는 그대로 회사 이메일을 쓴다.**
 
-- 그대로 둔다 — 의도한 것이면 아무것도 안 해도 된다.
-- GitHub noreply 주소로 바꾼다: `git config user.email <id>+<user>@users.noreply.github.com`
-  이후 커밋에만 적용된다.
-- 과거 커밋까지 바꾼다: `git filter-repo --email-callback` 등으로 히스토리 재작성. 공개 전이라
-  안전하다.
+**아직 남은 것:** 재작성 전 히스토리가 두 곳에 그대로 남아 있고, 둘 다 옛 이메일을 담고 있다.
+
+- 태그 `backup/pre-email-rewrite` — 되돌릴 수 있는 유일한 수단이라 일부러 남겼다.
+  `git push --tags`로 **같이 올라가면 재작성이 무의미해진다.**
+- `refs/original/refs/heads/main` — filter-branch가 남긴 백업. push 되지는 않는다.
+
+원격을 만들기 **전에** 정리한다:
+
+```sh
+git tag -d backup/pre-email-rewrite
+git update-ref -d refs/original/refs/heads/main
+git reflog expire --expire=now --all && git gc --prune=now --aggressive
+```
 
 ### 상표 고지
 
