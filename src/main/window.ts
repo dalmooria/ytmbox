@@ -5,6 +5,7 @@ import { settings } from './settings';
 import { applyUserAgentSpoof } from './user-agent';
 import { attachNavigationPolicy } from './navigation';
 import { attachOfflineFallback } from './offline';
+import { attachUnloadOverride } from './unload';
 import { YTMUSIC_URL } from './constants';
 
 const PARTITION = 'persist:ytmusic';
@@ -58,6 +59,7 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
   }
   attachNavigationPolicy(win);
   attachOfflineFallback(win);
+  attachUnloadOverride(win);
   attachWindowStatePersistence(win);
 
   win.on('close', (event) => {
