@@ -1,6 +1,9 @@
 import './app-name';
 import { app, BrowserWindow } from 'electron';
-import { sendMediaCommand } from '../shared/media';
+import { MediaCommand, sendMediaCommand } from '../shared/media';
+import { registerMediaKeys, unregisterMediaKeys } from './media-keys';
+import { installApplicationMenu } from './menu';
+import { settings } from './settings';
 import { createTray } from './tray';
 import { createMainWindow } from './window';
 
@@ -15,6 +18,15 @@ function showMainWindow(): void {
   mainWindow.focus();
 }
 
+function dispatchMedia(cmd: MediaCommand): void {
+  if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
+}
+
+function applyForceMediaKeys(enabled: boolean): void {
+  unregisterMediaKeys();
+  if (enabled) registerMediaKeys(dispatchMedia);
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -24,7 +36,12 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true;
   });
 
+  app.on('will-quit', () => {
+    unregisterMediaKeys();
+  });
+
   app.whenReady().then(() => {
+    installApplicationMenu({ onForceMediaKeysChange: applyForceMediaKeys });
     mainWindow = createMainWindow({
       isQuitting: () => quitting,
       // macOS는 Dock으로 복원 가능. 그 외 OS는 트레이가 있을 때만 숨기고, 없으면 실제로 닫는다.
@@ -34,11 +51,11 @@ if (!app.requestSingleInstanceLock()) {
     hasTray =
       createTray({
         onShow: showMainWindow,
-        onCommand: (cmd) => {
-          if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
-        },
+        onCommand: dispatchMedia,
         onQuit: () => app.quit(),
       }) !== null;
+
+    applyForceMediaKeys(settings.get('forceMediaKeys'));
   });
 
   app.on('activate', showMainWindow);
