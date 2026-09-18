@@ -1,7 +1,7 @@
 import { BrowserWindow, shell } from 'electron';
 import { isAllowedUrl, isExternallyOpenable } from './policy/url';
+import { YTMUSIC_URL } from './window';
 
-const YTMUSIC_URL = 'https://music.youtube.com/';
 const ACCOUNTS_HOST = 'accounts.google.com';
 
 /**
@@ -10,7 +10,8 @@ const ACCOUNTS_HOST = 'accounts.google.com';
  * 방식 출처: pear-desktop (MIT) src/index.ts
  */
 export function loginUrlReturningToYtMusic(): string {
-  const next = encodeURIComponent(YTMUSIC_URL);
+  // YTMUSIC_URL(트레일링 슬래시 없음)에 슬래시를 붙여 기존 로그인 continue URL과 바이트 동일하게 유지한다.
+  const next = encodeURIComponent(`${YTMUSIC_URL}/`);
   const cont = encodeURIComponent(
     `https://www.youtube.com/signin?action_handle_signin=true&next=${next}`,
   );

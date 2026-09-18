@@ -1,33 +1,25 @@
 import './app-name';
 import { app, BrowserWindow } from 'electron';
-import { attachNavigationPolicy } from './navigation';
-import { applyUserAgentSpoof } from './user-agent';
-import { settings } from './settings';
+import { createMainWindow } from './window';
 
-const YTMUSIC_URL = 'https://music.youtube.com';
+let mainWindow: BrowserWindow | null = null;
+let quitting = false;
 
-function createWindow(): BrowserWindow {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  if (settings.get('overrideUserAgent')) {
-    applyUserAgentSpoof(win);
-  }
-  attachNavigationPolicy(win);
-  void win.loadURL(YTMUSIC_URL);
-  return win;
-}
+app.on('before-quit', () => {
+  quitting = true;
+});
 
 app.whenReady().then(() => {
-  createWindow();
+  mainWindow = createMainWindow({
+    isQuitting: () => quitting,
+    hideOnClose: () => process.platform === 'darwin', // 트레이는 Task 9에서 연결
+  });
+});
+
+app.on('activate', () => {
+  mainWindow?.show();
 });
 
 app.on('window-all-closed', () => {
-  app.quit();
+  // macOS는 창이 숨겨져도 앱을 유지한다. 다른 OS도 트레이 동작을 맞추므로 종료하지 않는다.
 });
