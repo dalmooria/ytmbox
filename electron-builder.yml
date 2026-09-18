@@ -18,6 +18,7 @@ mac:
   notarize: false
   hardenedRuntime: false
   gatekeeperAssess: false
+  minimumSystemVersion: "13.0"
   target:
     - target: dmg
       arch: [arm64, x64]
