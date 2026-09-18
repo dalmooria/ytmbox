@@ -44,6 +44,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', showMainWindow);
 
   app.on('window-all-closed', () => {
-    // 창이 숨겨져도 앱을 유지한다 (트레이/Dock에서 복원).
+    // macOS와 트레이가 있는 경우 창이 숨겨져도 앱을 유지한다. 그 외에는 마지막 창이 닫히면 종료.
+    if (process.platform !== 'darwin' && !hasTray) app.quit();
   });
 }

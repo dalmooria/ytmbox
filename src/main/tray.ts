@@ -24,22 +24,28 @@ export function createTray(handlers: TrayHandlers): Tray | null {
     return null;
   }
 
-  const image = nativeImage.createFromPath(iconPath);
-  image.setTemplateImage(true);
+  try {
+    const image = nativeImage.createFromPath(iconPath);
+    image.setTemplateImage(true);
 
-  tray = new Tray(image);
-  tray.setToolTip('YTMusic');
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: '열기', click: () => handlers.onShow() },
-      { type: 'separator' },
-      { label: '재생 / 일시정지', click: () => handlers.onCommand('playpause') },
-      { label: '다음 곡', click: () => handlers.onCommand('next') },
-      { label: '이전 곡', click: () => handlers.onCommand('previous') },
-      { type: 'separator' },
-      { label: '종료', click: () => handlers.onQuit() },
-    ]),
-  );
-  tray.on('click', () => handlers.onShow());
-  return tray;
+    tray = new Tray(image);
+    tray.setToolTip('YTMusic');
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: '열기', click: () => handlers.onShow() },
+        { type: 'separator' },
+        { label: '재생 / 일시정지', click: () => handlers.onCommand('playpause') },
+        { label: '다음 곡', click: () => handlers.onCommand('next') },
+        { label: '이전 곡', click: () => handlers.onCommand('previous') },
+        { type: 'separator' },
+        { label: '종료', click: () => handlers.onQuit() },
+      ]),
+    );
+    tray.on('click', () => handlers.onShow());
+    return tray;
+  } catch (error) {
+    console.warn('[tray] failed to create tray, running without it:', error);
+    tray = null;
+    return null;
+  }
 }
