@@ -1,5 +1,5 @@
-// 플레이스홀더 아이콘 생성기. 외부 의존성 없음 (zlib만 사용).
-// 나중에 디자인된 PNG로 덮어써도 된다.
+// 트레이 플레이스홀더 아이콘 생성기. 외부 의존성 없음 (zlib만 사용).
+// build/icon.png은 실제 아트워크라 여기서 생성하지 않는다 — 덮어쓰면 아트워크가 사라진다.
 const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
@@ -46,23 +46,6 @@ function png(size, pixel) {
   ]);
 }
 
-function inCircle(x, y, cx, cy, r) {
-  const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
-  return dx * dx + dy * dy <= r * r;
-}
-
-// 앱 아이콘: 빨간 원 배경 + 흰 삼각형(재생) 느낌의 단순 도형
-function appIcon(size) {
-  return png(size, (x, y) => {
-    const c = size / 2;
-    if (!inCircle(x, y, c, c, size * 0.47)) return [0, 0, 0, 0];
-    // 흰 삼각형: 좌변 x=0.38, 우끝 x=0.70, 세로 중심
-    const nx = x / size, ny = y / size;
-    const inTri = nx >= 0.38 && nx <= 0.70 && Math.abs(ny - 0.5) <= (0.70 - nx) * 0.62;
-    return inTri ? [255, 255, 255, 255] : [255, 0, 0, 255];
-  });
-}
-
 // 트레이 템플릿: 검은 삼각형만 (macOS가 색을 알아서 반전)
 function trayIcon(size) {
   return png(size, (x, y) => {
@@ -73,9 +56,7 @@ function trayIcon(size) {
 }
 
 const root = path.join(__dirname, '..');
-fs.mkdirSync(path.join(root, 'build'), { recursive: true });
 fs.mkdirSync(path.join(root, 'assets'), { recursive: true });
-fs.writeFileSync(path.join(root, 'build', 'icon.png'), appIcon(1024));
 fs.writeFileSync(path.join(root, 'assets', 'trayTemplate.png'), trayIcon(16));
 fs.writeFileSync(path.join(root, 'assets', 'trayTemplate@2x.png'), trayIcon(32));
-console.log('icons written: build/icon.png, assets/trayTemplate.png, assets/trayTemplate@2x.png');
+console.log('icons written: assets/trayTemplate.png, assets/trayTemplate@2x.png');
