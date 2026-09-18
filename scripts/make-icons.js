@@ -46,12 +46,39 @@ function png(size, pixel) {
   ]);
 }
 
-// 트레이 템플릿: 검은 삼각형만 (macOS가 색을 알아서 반전)
+// 트레이 템플릿 아이콘: 앱 아이콘의 레코드판을 단색 글리프로 옮긴 것.
+//
+// macOS 템플릿 이미지는 색을 무시하고 알파만 읽는다. 메뉴 막대의 밝기와 강조 상태에
+// 맞춰 시스템이 알아서 칠하므로 검은색과 알파만 쓴다.
+//
+// 홈(groove)을 나타내는 동심원 띠를 넣어 봤지만 16px에서는 넣는 족족 레코드판이 아니라
+// 과녁으로 보였다. 띠 폭을 0.32px까지 줄여도 옅은 회색 링으로 남아 형태만 흐렸다.
+// 16px에서 살아남는 것은 가운데가 뚫린 단순한 원반뿐이라 그것만 남겼다.
+const DISC = {
+  outer: 0.92, // 반지름(짧은 변의 절반 기준). 메뉴 막대 여백을 남기려고 1.0을 다 쓰지 않는다.
+  hole: 0.30, // 라벨 구멍. 이보다 작으면 16px에서 메워져 그냥 동그라미가 된다.
+};
+
+/** 레코드판 안쪽이면 true. 좌표는 이미지 중심을 원점으로 한 -1..1. */
+function inDisc(nx, ny) {
+  const r = Math.hypot(nx, ny);
+  return r <= DISC.outer && r > DISC.hole;
+}
+
+// 가장자리 계단을 없애려고 픽셀마다 4x4로 과표본해 알파를 덮인 비율로 계산한다.
+const SAMPLES = 4;
+
 function trayIcon(size) {
   return png(size, (x, y) => {
-    const nx = x / size, ny = y / size;
-    const inTri = nx >= 0.25 && nx <= 0.80 && Math.abs(ny - 0.5) <= (0.80 - nx) * 0.7;
-    return inTri ? [0, 0, 0, 255] : [0, 0, 0, 0];
+    let hits = 0;
+    for (let sy = 0; sy < SAMPLES; sy++) {
+      for (let sx = 0; sx < SAMPLES; sx++) {
+        const px = x + (sx + 0.5) / SAMPLES;
+        const py = y + (sy + 0.5) / SAMPLES;
+        if (inDisc((px / size) * 2 - 1, (py / size) * 2 - 1)) hits++;
+      }
+    }
+    return [0, 0, 0, Math.round((hits / (SAMPLES * SAMPLES)) * 255)];
   });
 }
 
