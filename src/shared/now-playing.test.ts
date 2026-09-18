@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   displayWidth,
   formatTrayTitle,
+  formatWindowTitle,
   isNowPlaying,
   NOWPLAYING_CHANNEL,
   TRAY_TITLE_BUDGET,
@@ -68,6 +69,26 @@ describe('formatTrayTitle', () => {
 
   it('honours a caller-supplied budget', () => {
     expect(displayWidth(formatTrayTitle({ title: 'A'.repeat(50), artist: '' }, 10))).toBeLessThanOrEqual(10);
+  });
+});
+
+describe('formatWindowTitle', () => {
+  it('shows the app name alone when nothing is playing', () => {
+    expect(formatWindowTitle(null, 'YTMBox')).toBe('YTMBox');
+    expect(formatWindowTitle({ title: '', artist: 'Someone' }, 'YTMBox')).toBe('YTMBox');
+  });
+
+  it('puts the track before the app name', () => {
+    expect(formatWindowTitle({ title: '너인가봄', artist: '코드네임' }, 'YTMBox')).toBe('너인가봄 — YTMBox');
+  });
+
+  it('does not truncate — the title bar has room the menu bar does not', () => {
+    const title = 'A'.repeat(200);
+    expect(formatWindowTitle({ title, artist: '' }, 'YTMBox')).toBe(`${title} — YTMBox`);
+  });
+
+  it('collapses whitespace', () => {
+    expect(formatWindowTitle({ title: ' Song\n Name ', artist: '' }, 'YTMBox')).toBe('Song Name — YTMBox');
   });
 });
 

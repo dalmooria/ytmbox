@@ -66,6 +66,16 @@ export function formatTrayTitle(track: NowPlaying | null, budget = TRAY_TITLE_BU
   return `${truncate(title, budget - 1)}…`;
 }
 
+/**
+ * 창 제목. 메뉴 막대와 달리 폭 제한이 없으므로 자르지 않고,
+ * 아티스트는 메뉴 막대에 이미 있으므로 넣지 않는다.
+ */
+export function formatWindowTitle(track: NowPlaying | null, appName: string): string {
+  if (!track) return appName;
+  const title = clean(track.title);
+  return title ? `${title} — ${appName}` : appName;
+}
+
 /** 렌더러에서 온 값은 신뢰하지 않는다. */
 export function isNowPlaying(value: unknown): value is NowPlaying {
   if (typeof value !== 'object' || value === null) return false;

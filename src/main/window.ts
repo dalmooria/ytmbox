@@ -6,7 +6,7 @@ import { applyUserAgentSpoof } from './user-agent';
 import { attachNavigationPolicy } from './navigation';
 import { attachOfflineFallback } from './offline';
 import { attachUnloadOverride } from './unload';
-import { YTMUSIC_URL } from './constants';
+import { APP_NAME, YTMUSIC_URL } from './constants';
 
 const PARTITION = 'persist:ytmusic';
 const DEFAULT_SIZE = { width: 1280, height: 800 };
@@ -32,7 +32,7 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
     ...bounds,
     minWidth: 480,
     minHeight: 320,
-    title: 'YTMusic',
+    title: APP_NAME,
     show: false,
     webPreferences: {
       session: session.fromPartition(PARTITION),
@@ -57,6 +57,11 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
   if (settings.get('overrideUserAgent')) {
     applyUserAgentSpoof(win);
   }
+  // 페이지가 창 제목을 가져가지 않도록 막는다. 제목은 현재 곡에 맞춰 메인이 직접 정한다.
+  win.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+  });
+
   attachNavigationPolicy(win);
   attachOfflineFallback(win);
   attachUnloadOverride(win);

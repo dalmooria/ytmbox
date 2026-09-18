@@ -1,6 +1,6 @@
 {
-  "name": "ytmusic",
-  "productName": "YTMusic",
+  "name": "ytmbox",
+  "productName": "YTMBox",
   "version": "0.1.0",
   "description": "YouTube Music desktop wrapper",
   "main": "dist/main/index.js",

@@ -2,6 +2,7 @@ import { app, Menu, nativeImage, Tray } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { MediaCommand } from '../shared/media';
+import { APP_NAME } from './constants';
 
 export interface TrayHandlers {
   onShow(): void;
@@ -38,7 +39,7 @@ export function createTray(handlers: TrayHandlers): Tray | null {
     image.setTemplateImage(true);
 
     tray = new Tray(image);
-    tray.setToolTip('YTMusic');
+    tray.setToolTip(APP_NAME);
     tray.setContextMenu(
       Menu.buildFromTemplate([
         { label: '열기', click: () => handlers.onShow() },

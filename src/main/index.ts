@@ -1,7 +1,13 @@
 import './app-name';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { MediaCommand, sendMediaCommand } from '../shared/media';
-import { formatTrayTitle, isNowPlaying, NOWPLAYING_CHANNEL } from '../shared/now-playing';
+import {
+  formatTrayTitle,
+  formatWindowTitle,
+  isNowPlaying,
+  NOWPLAYING_CHANNEL,
+} from '../shared/now-playing';
+import { APP_NAME } from './constants';
 import { registerMediaKeys, unregisterMediaKeys } from './media-keys';
 import { installApplicationMenu } from './menu';
 import { settings } from './settings';
@@ -38,6 +44,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!mainWindow || event.sender !== mainWindow.webContents) return;
     if (!isNowPlaying(payload)) return;
     setTrayTitle(formatTrayTitle(payload));
+    mainWindow.setTitle(formatWindowTitle(payload, APP_NAME));
   });
 
   app.on('before-quit', () => {

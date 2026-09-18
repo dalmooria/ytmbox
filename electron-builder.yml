@@ -1,5 +1,5 @@
-appId: com.brad.ytmusic
-productName: YTMusic
+appId: com.brad.ytmbox
+productName: YTMBox
 copyright: Copyright © 2026 Brad
 directories:
   output: release

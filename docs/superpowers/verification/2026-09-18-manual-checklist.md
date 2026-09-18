@@ -1,4 +1,4 @@
-# YTMusic 수동 검증 체크리스트
+# YTMBox 수동 검증 체크리스트
 
 이 문서는 실제 디스플레이·오디오·Google 계정·하드웨어 미디어키가 필요해 자동 테스트로 확인하지 못한 항목을
 릴리스 전에 한 번은 직접 실행해보기 위한 체크리스트다. 2026-09-18 개발 모드, 패키징 앱,
@@ -14,22 +14,22 @@ DMG 설치본을 실제 실행했다. 아래 체크와 결과 기록은 이 실�
 - 테스터 macOS 버전: 26.6.2 (25G83)
 - 칩: [x] Apple Silicon (arm64)  [ ] Intel (x64)
 - 검증 일자: 2026-09-18, 15:54–16:10 KST
-- 사용한 빌드: [x] `npm start` (dev)  [x] `release/mac-arm64/YTMusic.app` (또는 `release/mac/`, packaged)  [ ] Homebrew 설치본
+- 사용한 빌드: [x] `npm start` (dev)  [x] `release/mac-arm64/YTMBox.app` (또는 `release/mac/`, packaged)  [ ] Homebrew 설치본
 
 Gatekeeper 동작과 아키텍처별 바이너리가 다르므로, 위 정보를 먼저 적어두면 결과를 나중에 비교할 수 있다.
 
 ## 0. 빌드
 
 - [x] `npm test && npm run dist` 실행. 모든 테스트 PASS, `release/`에 산출물 4개
-      (`YTMusic-<version>-arm64.dmg`, `YTMusic-<version>-x64.dmg`,
-      `YTMusic-<version>-arm64.zip`, `YTMusic-<version>-x64.zip`) 생성 확인.
+      (`YTMBox-<version>-arm64.dmg`, `YTMBox-<version>-x64.dmg`,
+      `YTMBox-<version>-arm64.zip`, `YTMBox-<version>-x64.zip`) 생성 확인.
 
 ## 1. 실행과 렌더링 (첫 관찰)
 
 - [x] **개발 모드 실행**: `npm start`. 앱 창이 뜨고 몇 초 안에 YouTube Music 페이지가 렌더링된다.
       (지금까지 한 번도 관찰된 적 없는 경로 — 창이 비어 있거나 흰 화면이면 `did-fail-load`나
       콘솔의 CSP/로드 에러를 확인한다.)
-- [x] **빌드된 앱 실행**: `open release/mac-arm64/YTMusic.app` (Intel이면 `release/mac/YTMusic.app`).
+- [x] **빌드된 앱 실행**: `open release/mac-arm64/YTMBox.app` (Intel이면 `release/mac/YTMBox.app`).
       dev와 동일하게 창이 뜨고 렌더링된다. 패키징된 애셋 경로(`app.getAppPath()`가 가리키는
       `app.asar` 내부)가 dev와 다르므로 별도로 확인해야 한다 — 여기서만 나는 실패가 있을 수 있다
       (트레이 아이콘, 오프라인 페이지 등은 8절에서 다시 확인).
@@ -73,7 +73,7 @@ UA 위장(`overrideUserAgent`, 기본 ON)은 오직 Google 로그인 차단을 �
 - [x] 앱이 실행된 상태에서 두 번째 인스턴스를 실행(`open` 또는 Finder에서 다시 더블클릭). 새 창이
       뜨지 않고 기존 창이 포커스된다 (`requestSingleInstanceLock` / `second-instance`).
 - [ ] **한동안 재생한 뒤 Cmd+Q와 트레이 `종료`로 각각 종료한다.** 창이 사라질 뿐 아니라
-      `pgrep -f YTMusic`이 비어야 한다. 프로세스가 남으면 페이지의 `beforeunload` 거부권이
+      `pgrep -f YTMBox`이 비어야 한다. 프로세스가 남으면 페이지의 `beforeunload` 거부권이
       다시 살아난 것이다 (`src/main/unload.ts`). 재생 직후·일시정지 상태 양쪽에서 확인한다.
 - [x] **창을 최소화한 뒤, 세 가지 방법으로 모두 복원되는지 확인한다** — 이 복원 경로는 최근 수정되었고
       아직 실제로 검증된 적이 없다:
@@ -108,9 +108,9 @@ UA 위장(`overrideUserAgent`, 기본 ON)은 오직 Google 로그인 차단을 �
   - `Chrome User-Agent로 위장 (재시작 필요)` — 기본 **체크됨**
   - `미디어키 강제 점유 (다른 앱의 미디어키를 가로챔)` — 기본 **체크 해제**
 - [x] 각 체크박스를 토글한 뒤 앱을 재시작해도 상태가 유지된다.
-- [x] `~/Library/Application Support/YTMusic/settings.json` 파일이 존재하고, 위에서 바꾼 값이 반영돼
-      있는지 `cat`으로 확인한다. **다른 이름의 디렉터리(예: `ytmusic`, `com.brad.ytmusic`) 아래 생기지
-      않는지도 확인한다** — `productName: YTMusic`을 그대로 쓰므로 `YTMusic` 디렉터리가 맞다.
+- [x] `~/Library/Application Support/YTMBox/settings.json` 파일이 존재하고, 위에서 바꾼 값이 반영돼
+      있는지 `cat`으로 확인한다. **다른 이름의 디렉터리(예: `ytmbox`, `com.brad.ytmbox`) 아래 생기지
+      않는지도 확인한다** — `productName: YTMBox`을 그대로 쓰므로 `YTMBox` 디렉터리가 맞다.
 
 ## 6. 미디어키
 
@@ -145,16 +145,16 @@ UA 위장(`overrideUserAgent`, 기본 ON)은 오직 Google 로그인 차단을 �
 
 ## 9. 패키지 빌드와 Gatekeeper
 
-- [ ] DMG(`release/YTMusic-<version>-arm64.dmg` 또는 `-x64.dmg`)를 열어 `/Applications`로 드래그
+- [ ] DMG(`release/YTMBox-<version>-arm64.dmg` 또는 `-x64.dmg`)를 열어 `/Applications`로 드래그
       설치한 뒤 실행한다. macOS 15 이상에서는 "손상되었기 때문에 열 수 없습니다" 오류가 예상된다
       (ad-hoc 서명, `identity: "-"`, notarize 없음). 아래 명령으로 해결되는지 확인한다:
       ```
-      xattr -cr /Applications/YTMusic.app
+      xattr -cr /Applications/YTMBox.app
       ```
 - [x] 위 패키징된 `.app`에서 4절(트레이 아이콘)과 8절(오프라인 페이지)을 다시 확인한다. 두 기능
       모두 `app.getAppPath()`로 `app.asar` 내부 경로를 참조하므로, dev에서는 되고 패키징된 빌드에서는
       안 되는 경로 문제가 있을 수 있다 — 1절과 별개로 반드시 재확인한다.
-- [ ] (선택, tap 저장소를 만든 뒤) `brew tap <github-user>/tap && brew install --cask ytmusic`로
+- [ ] (선택, tap 저장소를 만든 뒤) `brew tap <github-user>/tap && brew install --cask ytmbox`로
       설치했을 때는 cask의 `postflight`가 자동으로 격리 속성을 제거하므로 위 Gatekeeper 경고 없이
       바로 실행되는지 확인한다. tap 저장소가 아직 없다면 이 항목은 "보류"로 기록한다.
 
