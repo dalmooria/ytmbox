@@ -55,6 +55,7 @@ src/main/offline.ts          # did-fail-load → offline.html
 src/main/media-keys.ts       # forceMediaKeys 옵션용 globalShortcut
 src/main/tray.ts             # Tray 생성 및 메뉴
 src/main/menu.ts             # 앱 메뉴 + Settings 체크박스
+src/main/app-name.ts         # app.setName('YTMusic') — 다른 모듈보다 먼저 import되어 userData 경로를 고정
 src/main/index.ts            # 단일 인스턴스, 생명주기, 조립
 src/preload/index.ts         # media:command 수신 → DOM 제어
 ```
@@ -330,13 +331,37 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `isAllowedUrl` (Task 2)
-- Produces: `attachNavigationPolicy(win: BrowserWindow): void`
+- Produces: `attachNavigationPolicy(win: BrowserWindow): void`, `loginUrlReturningToYtMusic(): string`
 
 - [ ] **Step 1: navigation.ts 작성**
 
 ```ts
 import { BrowserWindow, shell } from 'electron';
 import { isAllowedUrl } from './policy/url';
+
+const YTMUSIC_URL = 'https://music.youtube.com/';
+const ACCOUNTS_HOST = 'accounts.google.com';
+
+/**
+ * YouTube Music의 로그인 버튼은 window.open으로 accounts.google.com 팝업을 열고 결과를 받는다.
+ * 팝업 없이 같은 창에서 로그인시키려면 완료 후 돌아올 continue URL을 직접 지정해야 한다.
+ * 방식 출처: pear-desktop (MIT) src/index.ts
+ */
+export function loginUrlReturningToYtMusic(): string {
+  const next = encodeURIComponent(YTMUSIC_URL);
+  const cont = encodeURIComponent(
+    `https://www.youtube.com/signin?action_handle_signin=true&next=${next}`,
+  );
+  return `https://${ACCOUNTS_HOST}/ServiceLogin?ltmpl=music&service=youtube&continue=${cont}`;
+}
+
+function isAccountsHost(url: string): boolean {
+  try {
+    return new URL(url).hostname === ACCOUNTS_HOST;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 새 창은 절대 만들지 않는다. 허용 URL은 같은 창에서 열고,
@@ -346,7 +371,9 @@ export function attachNavigationPolicy(win: BrowserWindow): void {
   const { webContents } = win;
 
   webContents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedUrl(url)) {
+    if (isAccountsHost(url)) {
+      void webContents.loadURL(loginUrlReturningToYtMusic());
+    } else if (isAllowedUrl(url)) {
       void webContents.loadURL(url);
     } else {
       void shell.openExternal(url);
@@ -355,7 +382,6 @@ export function attachNavigationPolicy(win: BrowserWindow): void {
   });
 
   webContents.on('will-navigate', (event, url) => {
-    if (url.startsWith('file:')) return; // 오프라인 폴백 페이지(Task 9)
     if (!isAllowedUrl(url)) {
       event.preventDefault();
       void shell.openExternal(url);
@@ -402,6 +428,7 @@ app.on('window-all-closed', () => {
 Run: `npm start`
 - 곡 우클릭 → "YouTube에서 보기"(또는 공유 → 링크 열기)가 기본 브라우저에서 열리고 앱 안에 새 창이 생기지 않는지 확인.
 - 앱 안에서 다른 곡/앨범으로 이동은 정상 동작.
+- 우상단 "로그인" 클릭 시 팝업 없이 같은 창이 accounts.google.com 로그인 페이지로 이동 (로그인 완료 복귀는 Task 4에서 확인).
 
 - [ ] **Step 4: 커밋**
 
@@ -556,7 +583,9 @@ import { applyUserAgentSpoof } from './user-agent';
 - [ ] **Step 7: 수동 확인**
 
 Run: `npm start` → 로그인 버튼 → Google 계정 로그인 진행.
-Expected: "이 브라우저 또는 앱은 안전하지 않을 수 있습니다" 없이 로그인 완료 후 YouTube Music으로 돌아옴.
+Expected:
+- "이 브라우저 또는 앱은 안전하지 않을 수 있습니다" 경고가 뜨지 않음.
+- 로그인 완료 후 **같은 창이 music.youtube.com으로 자동 복귀**하고 로그인 상태가 반영됨. accounts.google.com 페이지에 머무르면 Task 3의 `loginUrlReturningToYtMusic`의 continue 파라미터를 점검한다.
 
 - [ ] **Step 8: 커밋**
 
@@ -572,7 +601,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 5: 설정 저장소 (electron-store)
 
 **Files:**
-- Create: `src/main/settings.ts`
+- Create: `src/main/app-name.ts`, `src/main/settings.ts`
 - Modify: `src/main/index.ts`
 
 **Interfaces:**
@@ -584,11 +613,26 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   ```
 - 이후 Task 6(windowState), Task 10(forceMediaKeys), Task 11(메뉴 토글)이 사용한다.
 
-- [ ] **Step 1: settings.ts 작성**
+- [ ] **Step 1: app-name.ts 작성**
+
+`src/main/app-name.ts`:
+```ts
+import { app } from 'electron';
+
+/**
+ * 개발 시 package.json name('ytmusic')과 패키징 후 productName('YTMusic')이 달라
+ * userData 경로가 갈라진다. electron-store가 경로를 굳히기 전에 이름을 고정한다.
+ * index.ts의 첫 import여야 한다.
+ */
+app.setName('YTMusic');
+```
+
+- [ ] **Step 2: settings.ts 작성**
 
 ```ts
 import Store from 'electron-store';
 
+/** 창 위치·크기. policy/window-bounds.ts도 이 타입을 import한다. */
 export interface Rect {
   x: number;
   y: number;
@@ -619,10 +663,11 @@ export const settings = new Store<Schema>({
 });
 ```
 
-- [ ] **Step 2: UA 위장을 설정에 연동**
+- [ ] **Step 3: UA 위장을 설정에 연동**
 
-`src/main/index.ts`의 `createWindow`:
+`src/main/index.ts` 첫 줄에 `import './app-name';`를 추가하고 `createWindow`에서:
 ```ts
+import './app-name';
 import { settings } from './settings';
 // ...
   if (settings.get('overrideUserAgent')) {
@@ -631,18 +676,18 @@ import { settings } from './settings';
   attachNavigationPolicy(win);
 ```
 
-- [ ] **Step 3: 빌드 확인**
+- [ ] **Step 4: 빌드 확인**
 
 Run: `npm run build && npm start`
-Expected: 컴파일 오류 없음. 종료 후 `~/Library/Application Support/ytmusic/settings.json`이 생성되고 기본값 3개가 들어 있음.
+Expected: 컴파일 오류 없음. 종료 후 `~/Library/Application Support/YTMusic/settings.json`이 생성되고 기본값 3개가 들어 있음. (`ytmusic` 소문자 디렉터리가 생기면 app-name import 순서가 잘못된 것.)
 
-Run: `cat ~/Library/Application\ Support/ytmusic/settings.json`
+Run: `cat ~/Library/Application\ Support/YTMusic/settings.json`
 Expected: `{"overrideUserAgent":true,"forceMediaKeys":false,"windowState":null}`
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
-git add src/main/settings.ts src/main/index.ts
+git add src/main/app-name.ts src/main/settings.ts src/main/index.ts
 git commit -m "feat: add persistent settings store
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
@@ -660,7 +705,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Consumes: `settings`, `Rect`, `WindowState` (Task 5), `applyUserAgentSpoof` (Task 4), `attachNavigationPolicy` (Task 3)
 - Produces:
   - `fitBoundsToDisplays(saved: Rect | null, displays: Rect[], fallback: { width: number; height: number }): Rect | { width: number; height: number }`
-  - `createMainWindow(opts: { isQuitting: () => boolean }): BrowserWindow`
+  - `createMainWindow(opts: { isQuitting: () => boolean; hideOnClose: () => boolean }): BrowserWindow`
   - `YTMUSIC_URL` 상수 export
 
 - [ ] **Step 1: 실패하는 테스트 작성**
@@ -717,12 +762,9 @@ Expected: FAIL — `Cannot find module './window-bounds'`
 
 `src/main/policy/window-bounds.ts`:
 ```ts
-export interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { Rect } from '../settings';
+
+export type { Rect };
 
 export interface Size {
   width: number;
@@ -778,10 +820,16 @@ export const YTMUSIC_URL = 'https://music.youtube.com';
 const PARTITION = 'persist:ytmusic';
 const DEFAULT_SIZE = { width: 1280, height: 800 };
 const SAVE_DEBOUNCE_MS = 300;
+const SHOW_TIMEOUT_MS = 3000;
 
 export interface MainWindowOptions {
   /** true면 close 이벤트에서 hide 대신 실제로 닫는다. */
   isQuitting: () => boolean;
+  /**
+   * false면 close가 실제로 창을 닫는다. macOS는 Dock으로 복원할 수 있어 항상 true,
+   * 그 외 OS는 트레이가 만들어졌을 때만 true여야 한다 (Task 9에서 연결).
+   */
+  hideOnClose: () => boolean;
 }
 
 export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
@@ -806,6 +854,15 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
 
   if (saved?.isMaximized) win.maximize();
 
+  // ready-to-show는 첫 렌더 뒤에만 발생한다. 네트워크가 느려도 창이 영영 안 뜨는 일이 없도록 상한을 둔다.
+  const showTimeout = setTimeout(() => {
+    if (!win.isDestroyed() && !win.isVisible()) win.show();
+  }, SHOW_TIMEOUT_MS);
+  win.once('ready-to-show', () => {
+    clearTimeout(showTimeout);
+    win.show();
+  });
+
   if (settings.get('overrideUserAgent')) {
     applyUserAgentSpoof(win);
   }
@@ -813,12 +870,11 @@ export function createMainWindow(opts: MainWindowOptions): BrowserWindow {
   attachWindowStatePersistence(win);
 
   win.on('close', (event) => {
-    if (opts.isQuitting()) return;
+    if (opts.isQuitting() || !opts.hideOnClose()) return;
     event.preventDefault();
     win.hide();
   });
 
-  win.once('ready-to-show', () => win.show());
   void win.loadURL(YTMUSIC_URL);
   return win;
 }
@@ -852,6 +908,7 @@ function attachWindowStatePersistence(win: BrowserWindow): void {
 
 `src/main/index.ts` 전체:
 ```ts
+import './app-name';
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow } from './window';
 
@@ -863,7 +920,10 @@ app.on('before-quit', () => {
 });
 
 app.whenReady().then(() => {
-  mainWindow = createMainWindow({ isQuitting: () => quitting });
+  mainWindow = createMainWindow({
+    isQuitting: () => quitting,
+    hideOnClose: () => process.platform === 'darwin', // 트레이는 Task 9에서 연결
+  });
 });
 
 app.on('activate', () => {
@@ -886,6 +946,7 @@ export {};
 - [ ] **Step 8: 수동 확인**
 
 Run: `npm run build && npm start`
+0. 실행 후 3초 이내에 창이 나타난다 (로드가 느려도).
 1. 창을 옮기고 크기를 바꾼 뒤 Cmd+Q. 다시 `npm start` → 같은 위치·크기로 복원.
 2. 로그인 상태에서 Cmd+Q 후 재실행 → 로그인 유지.
 3. 창 닫기(빨간 버튼) → 창이 사라지지만 재생 중이면 소리가 계속 남. Dock 아이콘 클릭 → 창 복귀.
@@ -914,6 +975,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 `src/main/index.ts` 전체:
 ```ts
+import './app-name';
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow } from './window';
 
@@ -934,7 +996,10 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
-    mainWindow = createMainWindow({ isQuitting: () => quitting });
+    mainWindow = createMainWindow({
+      isQuitting: () => quitting,
+      hideOnClose: () => process.platform === 'darwin', // 트레이는 Task 9에서 연결
+    });
   });
 
   app.on('activate', () => {
@@ -1099,16 +1164,9 @@ ipcRenderer.on(MEDIA_CHANNEL, (_event, cmd: unknown) => {
 Run: `npm run build && ls dist/preload/index.js dist/shared/media.js`
 Expected: 두 파일 존재.
 
-- [ ] **Step 7: 수동 확인 (임시 DevTools)**
+- [ ] **Step 7: 커밋**
 
-Run: `npm start` → 곡 재생 → 메뉴 View → Toggle Developer Tools → Console에서:
-```js
-// 메인 프로세스 콘솔이 아니라 렌더러이므로 직접 send는 못 한다. 대신 preload가 로드됐는지만 확인:
-document.querySelector('ytmusic-player-bar .next-button') !== null
-```
-Expected: `true`. (실제 명령 전달은 Task 9 트레이 메뉴로 검증한다.)
-
-- [ ] **Step 8: 커밋**
+(preload 동작 검증은 명령을 보낼 UI가 생기는 Task 9의 트레이 메뉴 수동 확인에서 수행한다.)
 
 ```bash
 git add src/shared/ src/preload/index.ts
@@ -1278,6 +1336,7 @@ export function createTray(handlers: TrayHandlers): Tray | null {
 
 `src/main/index.ts` 전체:
 ```ts
+import './app-name';
 import { app, BrowserWindow } from 'electron';
 import { sendMediaCommand } from '../shared/media';
 import { createTray } from './tray';
@@ -1285,6 +1344,7 @@ import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
 let quitting = false;
+let hasTray = false;
 
 function showMainWindow(): void {
   if (!mainWindow) return;
@@ -1302,15 +1362,20 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
-    mainWindow = createMainWindow({ isQuitting: () => quitting });
-
-    createTray({
-      onShow: showMainWindow,
-      onCommand: (cmd) => {
-        if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
-      },
-      onQuit: () => app.quit(),
+    mainWindow = createMainWindow({
+      isQuitting: () => quitting,
+      // macOS는 Dock으로 복원 가능. 그 외 OS는 트레이가 있을 때만 숨기고, 없으면 실제로 닫는다.
+      hideOnClose: () => process.platform === 'darwin' || hasTray,
     });
+
+    hasTray =
+      createTray({
+        onShow: showMainWindow,
+        onCommand: (cmd) => {
+          if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
+        },
+        onQuit: () => app.quit(),
+      }) !== null;
   });
 
   app.on('activate', showMainWindow);
@@ -1388,7 +1453,7 @@ export function unregisterMediaKeys(): void {
 - [ ] **Step 2: menu.ts 작성**
 
 ```ts
-import { app, Menu, MenuItemConstructorOptions } from 'electron';
+import { Menu, MenuItemConstructorOptions } from 'electron';
 import { settings } from './settings';
 
 export interface MenuOptions {
@@ -1426,7 +1491,6 @@ export function installApplicationMenu(opts: MenuOptions): void {
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-  app.setName('YTMusic');
 }
 ```
 
@@ -1434,6 +1498,7 @@ export function installApplicationMenu(opts: MenuOptions): void {
 
 `src/main/index.ts` 전체:
 ```ts
+import './app-name';
 import { app, BrowserWindow } from 'electron';
 import { MediaCommand, sendMediaCommand } from '../shared/media';
 import { registerMediaKeys, unregisterMediaKeys } from './media-keys';
@@ -1444,6 +1509,7 @@ import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
 let quitting = false;
+let hasTray = false;
 
 function showMainWindow(): void {
   if (!mainWindow) return;
@@ -1475,19 +1541,24 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     installApplicationMenu({ onForceMediaKeysChange: applyForceMediaKeys });
-    mainWindow = createMainWindow({ isQuitting: () => quitting });
-    createTray({
-      onShow: showMainWindow,
-      onCommand: dispatchMedia,
-      onQuit: () => app.quit(),
+    mainWindow = createMainWindow({
+      isQuitting: () => quitting,
+      hideOnClose: () => process.platform === 'darwin' || hasTray,
     });
+    hasTray =
+      createTray({
+        onShow: showMainWindow,
+        onCommand: dispatchMedia,
+        onQuit: () => app.quit(),
+      }) !== null;
     applyForceMediaKeys(settings.get('forceMediaKeys'));
   });
 
   app.on('activate', showMainWindow);
 
   app.on('window-all-closed', () => {
-    // 창이 숨겨져도 앱을 유지한다 (트레이/Dock에서 복원).
+    // macOS와 트레이가 있는 경우 창이 숨겨져도 앱을 유지한다. 그 외에는 마지막 창이 닫히면 종료.
+    if (process.platform !== 'darwin' && !hasTray) app.quit();
   });
 }
 ```
@@ -1583,7 +1654,7 @@ import { attachOfflineFallback } from './offline';
 - [ ] **Step 4: 수동 확인**
 
 Run: Wi-Fi를 끈 상태에서 `npm run build && npm start`
-Expected: 오프라인 안내 페이지 표시. Wi-Fi를 켜고 "다시 시도" 클릭 → YouTube Music 로드. (file:// → https 이동은 Task 3의 will-navigate에서 file 출발을 허용하므로 통과한다.)
+Expected: 오프라인 안내 페이지 표시. Wi-Fi를 켜고 "다시 시도" 클릭 → YouTube Music 로드. (목적지가 허용 목록의 https URL이므로 will-navigate를 통과한다.)
 
 - [ ] **Step 5: 커밋**
 
@@ -1603,7 +1674,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `package.json` (없음, 스크립트는 Task 1에 이미 있음)
 
 **Interfaces:**
-- Produces: `npm run dist` → `release/YTMusic-<version>-arm64.dmg|zip`, `release/YTMusic-<version>-x64.dmg|zip`
+- Produces: `npm run dist` → `release/YTMusic-<version>-arm64.dmg|zip`, `release/YTMusic-<version>-x64.dmg|zip`. `npm run dist:win`은 Windows 러너 전용이며 로컬 Mac에서는 실행하지 않는다.
 
 - [ ] **Step 1: electron-builder.yml 작성**
 
@@ -1637,6 +1708,7 @@ mac:
 dmg:
   sign: false
 
+# Windows 빌드는 windows-latest 러너에서만 수행한다 (macOS에서 exe 아이콘 삽입에 Wine이 필요할 수 있음).
 win:
   icon: build/icon.png
   target:
@@ -1743,11 +1815,28 @@ jobs:
             release/*.zip
             release/SHA256SUMS.txt
           generate_release_notes: true
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
 ```
 
 - [ ] **Step 3: 로컬에서 YAML 문법 확인**
 
-Run: `node -e "const y=require('js-yaml')" 2>/dev/null || npx --yes js-yaml .github/workflows/ci.yml >/dev/null && npx --yes js-yaml .github/workflows/release.yml >/dev/null && echo OK`
+Run:
+```bash
+npx --yes js-yaml .github/workflows/ci.yml > /dev/null && npx --yes js-yaml .github/workflows/release.yml > /dev/null && echo OK
+```
 Expected: `OK`
 
 - [ ] **Step 4: 커밋**
@@ -1859,7 +1948,6 @@ cask "ytmusic" do
   end
 
   zap trash: [
-    "~/Library/Application Support/ytmusic",
     "~/Library/Application Support/YTMusic",
     "~/Library/Preferences/com.brad.ytmusic.plist",
     "~/Library/Saved Application State/com.brad.ytmusic.savedState",
@@ -2012,5 +2100,6 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Type consistency**
 - `MediaCommand`, `sendMediaCommand`, `MEDIA_CHANNEL`은 Task 8 정의를 Task 9, 10이 그대로 사용 ✓
 - `settings.get('windowState')` 타입 `WindowState | null`과 `fitBoundsToDisplays(saved: Rect | null, …)` 호출부 `saved?.bounds ?? null` 일치 ✓
-- `createMainWindow({ isQuitting })` 시그니처가 Task 6/7/9/10 index.ts에서 동일 ✓
-- `policy/window-bounds.ts`의 `Rect`와 `settings.ts`의 `Rect`는 구조가 같아 호환 ✓
+- `createMainWindow({ isQuitting, hideOnClose })` 시그니처가 Task 6/7/9/10 index.ts에서 동일 ✓
+- `import './app-name'`이 Task 5 이후 모든 index.ts의 첫 줄 ✓
+- `Rect`는 `settings.ts`에서 한 번 정의하고 `policy/window-bounds.ts`가 type-only import한다 (electron-store 런타임 로드 없음, vitest 안전) ✓
