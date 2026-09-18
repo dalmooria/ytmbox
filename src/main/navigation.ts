@@ -26,6 +26,21 @@ function isAccountsHost(url: string): boolean {
 }
 
 /**
+ * 외부로 넘길 URL은 http/https만 허용한다. file:, data:, 커스텀 스킴을 OS 핸들러에
+ * 그대로 넘기면 렌더러가 임의의 앱·파일을 열 수 있다.
+ */
+function safeOpenExternal(raw: string): void {
+  try {
+    const url = new URL(raw);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      void shell.openExternal(url.toString());
+    }
+  } catch {
+    // 파싱 불가한 URL은 무시한다.
+  }
+}
+
+/**
  * 새 창은 절대 만들지 않는다. 허용 URL은 같은 창에서 열고,
  * 나머지는 OS 기본 브라우저로 보낸다.
  */
@@ -38,7 +53,7 @@ export function attachNavigationPolicy(win: BrowserWindow): void {
     } else if (isAllowedUrl(url)) {
       void webContents.loadURL(url);
     } else {
-      void shell.openExternal(url);
+      safeOpenExternal(url);
     }
     return { action: 'deny' };
   });
@@ -46,7 +61,7 @@ export function attachNavigationPolicy(win: BrowserWindow): void {
   webContents.on('will-navigate', (event, url) => {
     if (!isAllowedUrl(url)) {
       event.preventDefault();
-      void shell.openExternal(url);
+      safeOpenExternal(url);
     }
   });
 }
