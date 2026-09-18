@@ -29,10 +29,15 @@ git update-ref -d refs/original/refs/heads/main
 git reflog expire --expire=now --all && git gc --prune=now --aggressive
 ```
 
-### 상표 고지
+### 상표 고지 — 해결됨
 
-이 앱은 YouTube Music을 감싸지만 Google과 무관하다. README에 **비공식·비제휴임을 명시**하는
-문단이 필요하다. 유사 프로젝트들이 모두 두는 문구이고, 없으면 오해를 산다.
+README에 두 군데 넣었다. 기능 목록 바로 아래에 한 줄 요약(인용문)을 두어 저장소 첫 화면에서
+바로 보이게 하고, 라이선스 절 앞에 `## 고지` 절을 두어 상표·콘텐츠 출처·약관 우회 기능
+부재를 밝혔다.
+
+아이콘 도안이 Google 상표나 로고를 쓰지 않는다는 점은 `build/icon.png`를 직접 열어
+확인했다 (턴테이블과 붉은 레코드판). 다만 **이 도안의 출처는 확인하지 않았다** — 직접
+만든 것이 아니라면 라이선스를 확인해 `THIRD_PARTY_NOTICES.md`에 고지가 필요할 수 있다.
 
 ## 1. 채워야 하는 값 (이게 없으면 설치가 실패한다)
 

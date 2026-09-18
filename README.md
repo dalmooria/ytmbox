@@ -11,6 +11,9 @@ YouTube Music 웹을 그대로 감싼 macOS(1순위) / Windows 데스크톱 앱�
 - 하드웨어 미디어키 및 macOS "지금 재생 중" 연동
 - 외부 링크는 기본 브라우저로
 
+> **비공식 프로젝트입니다.** YTMBox는 Google LLC와 아무 관련이 없으며, Google의
+> 보증·후원·승인을 받지 않았습니다. 자세한 내용은 [고지](#고지)를 참고하세요.
+
 ## 설치 (macOS, Homebrew)
 
 **참고:** 아래 명령은 `<github-user>/homebrew-tap` 저장소를 먼저 만들어 cask를
@@ -88,6 +91,22 @@ npm run dist:win # Windows nsis 인스톨러 → release/
 - [개발 기록](docs/development-log.md) — 무엇을 왜 그렇게 만들었는지, 고친 결함과 검증 방법
 - [배포 준비](docs/release-checklist.md) — 공개·릴리스까지 남은 일
 - [수동 검증 체크리스트](docs/superpowers/verification/2026-09-18-manual-checklist.md)
+
+## 고지
+
+YTMBox는 개인이 만든 **비공식** 서드파티 클라이언트입니다. Google LLC 및 그
+계열사와 **제휴·후원·승인 관계가 없으며**, 어떤 형태로도 이들을 대표하지 않습니다.
+
+- "YouTube", "YouTube Music", "Google"은 Google LLC의 상표입니다. 이 프로젝트에서
+  해당 이름은 **어떤 서비스를 감싸는지 설명하기 위해서만** 쓰입니다.
+- 이 앱은 music.youtube.com을 그대로 불러오는 껍데기입니다. 음악이나 그 밖의
+  콘텐츠를 자체적으로 제공하지 않고, 저장·재배포하지도 않습니다. 재생되는 모든
+  콘텐츠는 Google이 제공하며 **YouTube 서비스 약관**이 그대로 적용됩니다.
+- 광고 차단, 다운로드, 그 밖에 서비스 약관을 우회하는 기능은 **의도적으로 넣지
+  않았습니다.**
+- 앱 아이콘과 트레이 아이콘은 Google의 상표나 로고를 쓰지 않은 독자적인 도안입니다.
+
+이 소프트웨어는 MIT 라이선스에 따라 **아무런 보증 없이** 제공됩니다.
 
 ## 라이선스
 
