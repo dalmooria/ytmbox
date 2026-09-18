@@ -4,8 +4,9 @@ import { fitBoundsToDisplays } from './policy/window-bounds';
 import { settings } from './settings';
 import { applyUserAgentSpoof } from './user-agent';
 import { attachNavigationPolicy } from './navigation';
+import { YTMUSIC_URL } from './constants';
 
-export const YTMUSIC_URL = 'https://music.youtube.com';
+export { YTMUSIC_URL };
 const PARTITION = 'persist:ytmusic';
 const DEFAULT_SIZE = { width: 1280, height: 800 };
 const SAVE_DEBOUNCE_MS = 300;
