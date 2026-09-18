@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron';
+import { attachNavigationPolicy } from './navigation';
 
 const YTMUSIC_URL = 'https://music.youtube.com';
 
@@ -12,6 +13,7 @@ function createWindow(): BrowserWindow {
       sandbox: true,
     },
   });
+  attachNavigationPolicy(win);
   void win.loadURL(YTMUSIC_URL);
   return win;
 }
