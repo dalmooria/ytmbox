@@ -15,6 +15,8 @@ describe('isAllowedUrl', () => {
     'https://lh3.googleusercontent.com/a.png',
     'https://www.gstatic.com/x.js',
     'https://yt3.ggpht.com/a.jpg',
+    'https://MUSIC.YOUTUBE.COM/',
+    'https://google.com/',
   ])('allows %s', (url) => {
     expect(isAllowedUrl(url)).toBe(true);
   });
@@ -25,6 +27,7 @@ describe('isAllowedUrl', () => {
     'https://fakegoogle.com/',
     'https://google.com.evil.net/',
     'http://music.youtube.com/',
+    'https://music.youtube.com@evil.com/',
     'file:///etc/passwd',
     'javascript:alert(1)',
     'not a url',

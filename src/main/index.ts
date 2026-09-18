@@ -12,14 +12,14 @@ let quitting = false;
 let hasTray = false;
 
 function showMainWindow(): void {
-  if (!mainWindow) return;
+  if (!mainWindow || mainWindow.isDestroyed()) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
 }
 
 function dispatchMedia(cmd: MediaCommand): void {
-  if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
+  if (mainWindow && !mainWindow.isDestroyed()) sendMediaCommand(mainWindow.webContents, cmd);
 }
 
 function applyForceMediaKeys(enabled: boolean): void {
@@ -46,6 +46,9 @@ if (!app.requestSingleInstanceLock()) {
       isQuitting: () => quitting,
       // macOS는 Dock으로 복원 가능. 그 외 OS는 트레이가 있을 때만 숨기고, 없으면 실제로 닫는다.
       hideOnClose: () => process.platform === 'darwin' || hasTray,
+    });
+    mainWindow.on('closed', () => {
+      mainWindow = null;
     });
 
     hasTray =

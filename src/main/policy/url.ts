@@ -4,6 +4,7 @@ const EXACT_HOSTS: ReadonlySet<string> = new Set([
   'www.youtube.com',
   'youtube.com',
   'apis.google.com',
+  'google.com',
 ]);
 
 const SUFFIX_HOSTS: readonly string[] = [
