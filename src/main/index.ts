@@ -1,18 +1,24 @@
 import './app-name';
 import { app, BrowserWindow } from 'electron';
+import { sendMediaCommand } from '../shared/media';
+import { createTray } from './tray';
 import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
 let quitting = false;
+let hasTray = false;
+
+function showMainWindow(): void {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (!mainWindow) return;
-    mainWindow.show();
-    mainWindow.focus();
-  });
+  app.on('second-instance', showMainWindow);
 
   app.on('before-quit', () => {
     quitting = true;
@@ -21,13 +27,21 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     mainWindow = createMainWindow({
       isQuitting: () => quitting,
-      hideOnClose: () => process.platform === 'darwin', // 트레이는 Task 9에서 연결
+      // macOS는 Dock으로 복원 가능. 그 외 OS는 트레이가 있을 때만 숨기고, 없으면 실제로 닫는다.
+      hideOnClose: () => process.platform === 'darwin' || hasTray,
     });
+
+    hasTray =
+      createTray({
+        onShow: showMainWindow,
+        onCommand: (cmd) => {
+          if (mainWindow) sendMediaCommand(mainWindow.webContents, cmd);
+        },
+        onQuit: () => app.quit(),
+      }) !== null;
   });
 
-  app.on('activate', () => {
-    mainWindow?.show();
-  });
+  app.on('activate', showMainWindow);
 
   app.on('window-all-closed', () => {
     // 창이 숨겨져도 앱을 유지한다 (트레이/Dock에서 복원).
