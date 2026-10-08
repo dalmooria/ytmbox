@@ -4,7 +4,12 @@ export const NOWPLAYING_CHANNEL = 'media:nowplaying';
 export interface NowPlaying {
   title: string;
   artist: string;
+  state: PlaybackState;
 }
+
+/** preload/index.ts의 리터럴과 반드시 동일하게 유지한다. */
+export const PLAYBACK_STATES = ['playing', 'paused', 'stopped'] as const;
+export type PlaybackState = (typeof PLAYBACK_STATES)[number];
 
 /**
  * 메뉴 막대에 허용할 폭(칸). 한글·CJK는 2칸이므로 32칸은 한글 16자 남짓이다.
@@ -79,7 +84,8 @@ export function formatWindowTitle(track: NowPlaying | null, appName: string): st
 /** 렌더러에서 온 값은 신뢰하지 않는다. */
 export function isNowPlaying(value: unknown): value is NowPlaying {
   if (typeof value !== 'object' || value === null) return false;
-  const { title, artist } = value as Record<string, unknown>;
+  const { title, artist, state } = value as Record<string, unknown>;
   if (typeof title !== 'string' || typeof artist !== 'string') return false;
+  if (!(PLAYBACK_STATES as readonly unknown[]).includes(state)) return false;
   return title.length <= RAW_MAX && artist.length <= RAW_MAX;
 }

@@ -34,19 +34,29 @@ function runMediaCommand(cmd: MediaCommand): void {
   }
 }
 
-// src/shared/now-playing.ts의 채널명을 리터럴로 복제한다 (위와 같은 샌드박스 제약).
+// src/shared/now-playing.ts의 채널명과 재생 상태를 리터럴로 복제한다 (위와 같은 샌드박스 제약).
 const NOWPLAYING_CHANNEL = 'media:nowplaying';
+type PlaybackState = 'playing' | 'paused' | 'stopped';
 
 let lastReported = '';
+
+// navigator.mediaSession.playbackState는 페이지가 갱신하지 않으면 'none'에 머무르므로
+// <video>에서 직접 읽는다. 곡이 없거나 끝까지 재생된 상태는 일시정지와 구분해 정지로 본다.
+function playbackState(hasTrack: boolean): PlaybackState {
+  const video = document.querySelector('video');
+  if (!video || !hasTrack || video.ended) return 'stopped';
+  return video.paused ? 'paused' : 'playing';
+}
 
 function reportNowPlaying(): void {
   const metadata = navigator.mediaSession?.metadata;
   const title = metadata?.title ?? '';
   const artist = metadata?.artist ?? '';
-  const key = `${title}\u0000${artist}`;
+  const state = playbackState(title !== '');
+  const key = `${title}\u0000${artist}\u0000${state}`;
   if (key === lastReported) return;
   lastReported = key;
-  ipcRenderer.send(NOWPLAYING_CHANNEL, { title, artist });
+  ipcRenderer.send(NOWPLAYING_CHANNEL, { title, artist, state });
 }
 
 // 미디어 이벤트는 버블링하지 않지만 캡처 단계는 거친다. document에서 캡처하면

@@ -11,7 +11,7 @@ import { APP_NAME } from './constants';
 import { registerMediaKeys, unregisterMediaKeys } from './media-keys';
 import { installApplicationMenu } from './menu';
 import { settings } from './settings';
-import { createTray, setTrayTitle } from './tray';
+import { createTray, setTraySpinning, setTrayTitle } from './tray';
 import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
@@ -44,6 +44,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!mainWindow || event.sender !== mainWindow.webContents) return;
     if (!isNowPlaying(payload)) return;
     setTrayTitle(formatTrayTitle(payload));
+    setTraySpinning(payload.state === 'playing');
     mainWindow.setTitle(formatWindowTitle(payload, APP_NAME));
   });
 
@@ -64,6 +65,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     mainWindow.on('closed', () => {
       mainWindow = null;
+      setTraySpinning(false);
     });
 
     hasTray =

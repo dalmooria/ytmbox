@@ -59,23 +59,41 @@ const DISC = {
   hole: 0.30, // 라벨 구멍. 이보다 작으면 16px에서 메워져 그냥 동그라미가 된다.
 };
 
-/** 레코드판 안쪽이면 true. 좌표는 이미지 중심을 원점으로 한 -1..1. */
-function inDisc(nx, ny) {
+// 원반은 회전 대칭이라 그대로 돌리면 움직임이 보이지 않는다. 레코드판에 비치는 빛처럼
+// 마주 보는 두 쐐기를 파내 회전을 드러낸다. 테두리와 라벨 쪽은 남겨 둬야 원반으로 읽힌다 —
+// 끝까지 파내면 로딩 스피너처럼 보인다.
+const SHEEN = {
+  inner: 0.44,
+  outer: 0.80,
+  halfWidth: (26 * Math.PI) / 180,
+};
+
+// 쐐기가 180° 대칭이라 반 바퀴만 그리면 한 주기가 된다.
+// src/main/tray.ts의 TRAY_FRAME_COUNT와 반드시 동일하게 유지한다.
+const FRAME_COUNT = 12;
+
+/** 레코드판 안쪽이면 true. 좌표는 이미지 중심을 원점으로 한 -1..1, angle은 쐐기의 방향(rad). */
+function inDisc(nx, ny, angle) {
   const r = Math.hypot(nx, ny);
-  return r <= DISC.outer && r > DISC.hole;
+  if (r > DISC.outer || r <= DISC.hole) return false;
+  if (r < SHEEN.inner || r > SHEEN.outer) return true;
+  // 쐐기 축에서 벗어난 각도를 0..90°로 접는다 (마주 보는 두 쐐기를 한 번에 판정).
+  let d = Math.abs(Math.atan2(ny, nx) - angle) % Math.PI;
+  if (d > Math.PI / 2) d = Math.PI - d;
+  return d > SHEEN.halfWidth;
 }
 
 // 가장자리 계단을 없애려고 픽셀마다 4x4로 과표본해 알파를 덮인 비율로 계산한다.
 const SAMPLES = 4;
 
-function trayIcon(size) {
+function trayIcon(size, angle) {
   return png(size, (x, y) => {
     let hits = 0;
     for (let sy = 0; sy < SAMPLES; sy++) {
       for (let sx = 0; sx < SAMPLES; sx++) {
         const px = x + (sx + 0.5) / SAMPLES;
         const py = y + (sy + 0.5) / SAMPLES;
-        if (inDisc((px / size) * 2 - 1, (py / size) * 2 - 1)) hits++;
+        if (inDisc((px / size) * 2 - 1, (py / size) * 2 - 1, angle)) hits++;
       }
     }
     return [0, 0, 0, Math.round((hits / (SAMPLES * SAMPLES)) * 255)];
@@ -83,7 +101,15 @@ function trayIcon(size) {
 }
 
 const root = path.join(__dirname, '..');
-fs.mkdirSync(path.join(root, 'assets'), { recursive: true });
-fs.writeFileSync(path.join(root, 'assets', 'trayTemplate.png'), trayIcon(16));
-fs.writeFileSync(path.join(root, 'assets', 'trayTemplate@2x.png'), trayIcon(32));
-console.log('icons written: assets/trayTemplate.png, assets/trayTemplate@2x.png');
+const assets = path.join(root, 'assets');
+fs.mkdirSync(assets, { recursive: true });
+
+// 0번 프레임은 멈춰 있을 때의 아이콘이기도 하다. 쐐기가 대각선에 놓이도록 -45°에서 시작한다.
+const START = -Math.PI / 4;
+for (let i = 0; i < FRAME_COUNT; i++) {
+  const angle = START + (i * Math.PI) / FRAME_COUNT;
+  const name = i === 0 ? 'trayTemplate' : `traySpin${String(i).padStart(2, '0')}Template`;
+  fs.writeFileSync(path.join(assets, `${name}.png`), trayIcon(16, angle));
+  fs.writeFileSync(path.join(assets, `${name}@2x.png`), trayIcon(32, angle));
+}
+console.log(`icons written: assets/trayTemplate.png + ${FRAME_COUNT - 1} spin frames (each with @2x)`);

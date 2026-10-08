@@ -7,6 +7,7 @@ import {
   formatWindowTitle,
   isNowPlaying,
   NOWPLAYING_CHANNEL,
+  PLAYBACK_STATES,
   TRAY_TITLE_BUDGET,
 } from './now-playing';
 
@@ -26,22 +27,31 @@ describe('displayWidth', () => {
 });
 
 describe('formatTrayTitle', () => {
+  const playing = (title: string, artist: string) => ({ title, artist, state: 'playing' as const });
+
   it('shows nothing when there is no track', () => {
     expect(formatTrayTitle(null)).toBe('');
-    expect(formatTrayTitle({ title: '', artist: 'Someone' })).toBe('');
+    expect(formatTrayTitle({ title: '', artist: 'Someone', state: 'stopped' })).toBe('');
+  });
+
+  it('shows the same text in every playback state — the icon carries the state', () => {
+    const track = { title: '한번 더 이별', artist: '성시경' };
+    for (const state of PLAYBACK_STATES) {
+      expect(formatTrayTitle({ ...track, state })).toBe('한번 더 이별 — 성시경');
+    }
   });
 
   it('joins title and artist when they fit', () => {
-    expect(formatTrayTitle({ title: '짧은 제목', artist: '아티스트' })).toBe('짧은 제목 — 아티스트');
+    expect(formatTrayTitle(playing('짧은 제목', '아티스트'))).toBe('짧은 제목 — 아티스트');
   });
 
   it('shows the title alone when there is no artist', () => {
-    expect(formatTrayTitle({ title: 'Hello', artist: '' })).toBe('Hello');
+    expect(formatTrayTitle(playing('Hello', ''))).toBe('Hello');
   });
 
   it('drops the artist rather than truncating when the pair is too wide', () => {
     const title = 'A'.repeat(25);
-    expect(formatTrayTitle({ title, artist: 'B'.repeat(20) })).toBe(title);
+    expect(formatTrayTitle(playing(title, 'B'.repeat(20)))).toBe(title);
   });
 
   it('truncates a title that is too wide on its own', () => {
@@ -49,7 +59,7 @@ describe('formatTrayTitle', () => {
     const title = 'Still waiting for you(바라고 바라고)';
     expect(displayWidth(title)).toBeGreaterThan(TRAY_TITLE_BUDGET);
 
-    const out = formatTrayTitle({ title, artist: 'SEUNGJUN(승준)' });
+    const out = formatTrayTitle(playing(title, 'SEUNGJUN(승준)'));
 
     expect(out.endsWith('…')).toBe(true);
     expect(displayWidth(out)).toBeLessThanOrEqual(TRAY_TITLE_BUDGET);
@@ -57,55 +67,63 @@ describe('formatTrayTitle', () => {
   });
 
   it('never splits a multi-code-unit character when truncating', () => {
-    const out = formatTrayTitle({ title: '🎵'.repeat(30), artist: '' });
+    const out = formatTrayTitle(playing('🎵'.repeat(30), ''));
 
     expect(displayWidth(out)).toBeLessThanOrEqual(TRAY_TITLE_BUDGET);
     expect([...out].every((ch) => ch === '🎵' || ch === '…')).toBe(true);
   });
 
   it('collapses whitespace and newlines that would break the menu bar', () => {
-    expect(formatTrayTitle({ title: '  Song\n\n  Name  ', artist: '' })).toBe('Song Name');
+    expect(formatTrayTitle(playing('  Song\n\n  Name  ', ''))).toBe('Song Name');
   });
 
   it('honours a caller-supplied budget', () => {
-    expect(displayWidth(formatTrayTitle({ title: 'A'.repeat(50), artist: '' }, 10))).toBeLessThanOrEqual(10);
+    expect(displayWidth(formatTrayTitle(playing('A'.repeat(50), ''), 10))).toBeLessThanOrEqual(10);
   });
 });
 
 describe('formatWindowTitle', () => {
   it('shows the app name alone when nothing is playing', () => {
     expect(formatWindowTitle(null, 'YTMBox')).toBe('YTMBox');
-    expect(formatWindowTitle({ title: '', artist: 'Someone' }, 'YTMBox')).toBe('YTMBox');
+    expect(formatWindowTitle({ title: '', artist: 'Someone', state: 'stopped' }, 'YTMBox')).toBe('YTMBox');
   });
 
   it('puts the track before the app name', () => {
-    expect(formatWindowTitle({ title: '너인가봄', artist: '코드네임' }, 'YTMBox')).toBe('너인가봄 — YTMBox');
+    expect(formatWindowTitle({ title: '너인가봄', artist: '코드네임', state: 'paused' }, 'YTMBox')).toBe('너인가봄 — YTMBox');
   });
 
   it('does not truncate — the title bar has room the menu bar does not', () => {
     const title = 'A'.repeat(200);
-    expect(formatWindowTitle({ title, artist: '' }, 'YTMBox')).toBe(`${title} — YTMBox`);
+    expect(formatWindowTitle({ title, artist: '', state: 'playing' }, 'YTMBox')).toBe(`${title} — YTMBox`);
   });
 
   it('collapses whitespace', () => {
-    expect(formatWindowTitle({ title: ' Song\n Name ', artist: '' }, 'YTMBox')).toBe('Song Name — YTMBox');
+    expect(formatWindowTitle({ title: ' Song\n Name ', artist: '', state: 'playing' }, 'YTMBox')).toBe('Song Name — YTMBox');
   });
 });
 
 describe('isNowPlaying', () => {
-  it('accepts a well-formed payload', () => {
-    expect(isNowPlaying({ title: 'a', artist: 'b' })).toBe(true);
+  it('accepts a well-formed payload in every playback state', () => {
+    for (const state of PLAYBACK_STATES) {
+      expect(isNowPlaying({ title: 'a', artist: 'b', state })).toBe(true);
+    }
   });
 
   it('rejects anything that is not a title/artist pair of strings', () => {
     expect(isNowPlaying(null)).toBe(false);
     expect(isNowPlaying('nope')).toBe(false);
-    expect(isNowPlaying({ title: 'a' })).toBe(false);
-    expect(isNowPlaying({ title: 'a', artist: 42 })).toBe(false);
+    expect(isNowPlaying({ title: 'a', state: 'playing' })).toBe(false);
+    expect(isNowPlaying({ title: 'a', artist: 42, state: 'playing' })).toBe(false);
+  });
+
+  it('rejects a missing or unknown playback state', () => {
+    expect(isNowPlaying({ title: 'a', artist: 'b' })).toBe(false);
+    expect(isNowPlaying({ title: 'a', artist: 'b', state: 'buffering' })).toBe(false);
+    expect(isNowPlaying({ title: 'a', artist: 'b', state: 1 })).toBe(false);
   });
 
   it('rejects an oversized payload from a compromised renderer', () => {
-    expect(isNowPlaying({ title: 'a'.repeat(5000), artist: 'b' })).toBe(false);
+    expect(isNowPlaying({ title: 'a'.repeat(5000), artist: 'b', state: 'playing' })).toBe(false);
   });
 });
 
@@ -121,6 +139,10 @@ describe('preload literal mirror of now-playing.ts (drift guard)', () => {
 
   it('contains the now-playing channel name', () => {
     expect(preloadSource).toContain(NOWPLAYING_CHANNEL);
+  });
+
+  it('contains every playback state literal', () => {
+    for (const state of PLAYBACK_STATES) expect(preloadSource).toContain(`'${state}'`);
   });
 
   it('reports on media events rather than polling with a timer', () => {
